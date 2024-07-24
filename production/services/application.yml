@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: domain
+  jpa:
+    database: postgresql
+    show-sql: true
+    hibernate:
+      format_sql: true
+      ddl-auto: update
+      cache:
+        use_second_level_cache: false
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://db:5432/tourism?characterEncoding=UTF-8
+    username: postgres
+    password: india
+
+encrypt:
+  password: SHDi3ur9adaojwSPOR#DJPj3orJSDIEWAJRI3jSD3r03jfs0#R)Ojedfjw0
+
+session:
+  client-secret: b5aLx87-W2AekkMnvtPAz2ejcydyLDSwfUmILlxb0KegHksAP5eqf5k54WUzd89u
+  access-token-expiration-time: 15
+  refresh-token-expiration-time: 7

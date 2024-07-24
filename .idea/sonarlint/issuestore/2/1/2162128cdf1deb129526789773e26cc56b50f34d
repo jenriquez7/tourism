@@ -1,0 +1,6 @@
+
+	java:S116"URename this field "SECRET_KEY" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(ˆ÷õ»J$4c73384a-0977-4c11-9057-4f6269e47f55
+~
+java:S6813"BRemove this field injection and use constructor injection instead.(êæÄŞJ$33d82827-fa0f-4208-8d4e-ed414b676163
+‚
+java:S6201O"FReplace this instanceof check and cast with 'instanceof String string'(£êŒJ$d27a4262-1fc5-42c7-9603-cd6abc2e9b42
