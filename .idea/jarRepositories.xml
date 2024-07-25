@@ -21,5 +21,10 @@
       <option name="name" value="local-repo" />
       <option name="url" value="file:E:\Repos\Obligatorio\services/lib" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="local-repo" />
+      <option name="name" value="local-repo" />
+      <option name="url" value="file:E:\Repos\tourism\services/lib" />
+    </remote-repository>
   </component>
 </project>
