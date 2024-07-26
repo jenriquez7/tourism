@@ -38,6 +38,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -279,7 +280,7 @@ class BookingServiceTests {
         List<Booking> mockBookings = Arrays.asList(existingBooking, existingBooking);
         bookingPage = new PageImpl<>(mockBookings);
 
-        when(pricingService.calculateBookingPrice(TouristType.STANDARD, any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
+        when(pricingService.calculateBookingPrice(eq(TouristType.STANDARD), any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
 
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
@@ -388,7 +389,7 @@ class BookingServiceTests {
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
         when(repository.findById(existingBooking.getId())).thenReturn(Optional.of(existingBooking));
-        when(pricingService.calculateBookingPrice(TouristType.STANDARD, any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
+        when(pricingService.calculateBookingPrice(eq(TouristType.STANDARD), any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.getById(existingBooking.getId());
 
@@ -442,7 +443,7 @@ class BookingServiceTests {
         when(repository.findById(bookingId)).thenReturn(Optional.of(existingBooking));
         when(bookingValidation.validChangeState(existingBooking, BookingState.ACCEPTED, userId)).thenReturn(Either.right(true));
         when(repository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(pricingService.calculateBookingPrice(TouristType.STANDARD, any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
+        when(pricingService.calculateBookingPrice(eq(TouristType.STANDARD), any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.changeState(bookingId, BookingState.ACCEPTED, userId);
