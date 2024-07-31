@@ -20,7 +20,7 @@
 *.rar
 
 # Intellij
-.idea/
+*.idea/
 *.iml
 *.iws
 

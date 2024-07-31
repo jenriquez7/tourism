@@ -10,7 +10,7 @@
 	<description>common-model of tourism app</description>
 
 	<properties>
-		<java.version>22</java.version>
+		<java.version>21</java.version>
 		<spring.version>3.3.0</spring.version>
 	</properties>
 
