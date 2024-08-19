@@ -31,8 +31,10 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             return Either.right(repository.save(category));
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.GENERIC_ERROR, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CATEGORY_NOT_CREATED, e.getMessage())});
         }
     }
@@ -46,8 +48,10 @@ public class CategoryServiceImpl implements CategoryService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.NULL_ID)});
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_CATEGORY_NOT_UPDATED, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CATEGORY_NOT_UPDATED, e.getMessage())});
         }
     }
@@ -57,6 +61,7 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             return Either.right(repository.findAllByOrderByNameAsc());
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.GENERIC_ERROR)});
         }
     }
@@ -68,8 +73,10 @@ public class CategoryServiceImpl implements CategoryService {
             repository.delete(category.get());
             return Either.right(null);
         } catch (NoSuchElementException | InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CATEGORY_NOT_FOUND)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_CATEGORY, e.getMessage())});
         }
     }
@@ -79,8 +86,10 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             return Either.right(repository.findById(id).orElse(null));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_CATEGORY, e.getMessage())});
         }
     }
@@ -90,8 +99,10 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             return Either.right(repository.findByNameStartingWithIgnoreCaseOrderByNameAsc(name));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_NAME)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_CATEGORY, e.getMessage())});
         }
     }

@@ -60,8 +60,10 @@ public class AdminServiceImpl implements AdminService {
                 return Either.left(validation.getLeft());
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_ADMIN_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CREATE_ADMIN, e.getMessage())});
         }
     }
@@ -73,6 +75,7 @@ public class AdminServiceImpl implements AdminService {
             Page<Admin> adminsPage = repository.findAll(pageable);
             return Either.right(adminsPage.map(AdminResponseDTO::adminToResponseDto));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
@@ -90,8 +93,10 @@ public class AdminServiceImpl implements AdminService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CANNOT_DELETE_LAST_ADMIN)});
             }
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_ADMIN_NOT_FOUND)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
@@ -103,6 +108,7 @@ public class AdminServiceImpl implements AdminService {
         } catch (InvalidDataAccessApiUsageException e) {
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
@@ -114,8 +120,10 @@ public class AdminServiceImpl implements AdminService {
             Page<Admin> adminsPage = repository.findByEmailStartingWithIgnoreCase(email, pageable);
             return Either.right(adminsPage.map(AdminResponseDTO::adminToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }

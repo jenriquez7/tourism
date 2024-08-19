@@ -80,10 +80,13 @@ public class BookingServiceImpl implements BookingService {
                 return Either.left(validation.getLeft());
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_BOOKING_NOT_CREATED, e.getMessage())});
         } catch (IllegalArgumentException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_BOOKING_DATES, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_NOT_CREATED, e.getMessage())});
         }
     }
@@ -118,10 +121,13 @@ public class BookingServiceImpl implements BookingService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_BOOKING_NOT_UPDATED, e.getMessage())});
         } catch (IllegalArgumentException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_BOOKING_DATES, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_NOT_UPDATED, e.getMessage())});
         }
     }
@@ -133,6 +139,7 @@ public class BookingServiceImpl implements BookingService {
             Page<Booking> bookings = repository.findAll(pageable);
             return Either.right(bookings.map(BookingResponseDTO::bookingToResponseDTO));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.GENERIC_ERROR, e.getMessage())});
         }
     }
@@ -144,8 +151,10 @@ public class BookingServiceImpl implements BookingService {
             repository.delete(Objects.requireNonNull(booking));
             return Either.right(null);
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_BOOKING, e.getMessage())});
         }
     }
@@ -160,6 +169,7 @@ public class BookingServiceImpl implements BookingService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
             }
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_BOOKING, e.getMessage())});
         }
     }
@@ -186,6 +196,7 @@ public class BookingServiceImpl implements BookingService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
             }
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_BOOKING_CHANGE_STATE, e.getMessage())});
         }
     }

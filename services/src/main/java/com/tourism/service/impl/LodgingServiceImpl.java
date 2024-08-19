@@ -59,8 +59,10 @@ public class LodgingServiceImpl implements LodgingService {
             lodging.setEnabled(true);
             return Either.right(LodgingResponseDTO.lodgingToResponseDTO(repository.save(lodging)));
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
         }
     }
@@ -84,8 +86,10 @@ public class LodgingServiceImpl implements LodgingService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_LODGING_OWNER)});
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_UPDATED, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_NOT_UPDATED, e.getMessage())});
         }
     }
@@ -97,6 +101,7 @@ public class LodgingServiceImpl implements LodgingService {
             Page<Lodging> lodgings = repository.findAll(pageable);
             return Either.right(lodgings.map(LodgingResponseDTO::lodgingToResponseDTO));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
         }
     }
@@ -108,10 +113,13 @@ public class LodgingServiceImpl implements LodgingService {
             repository.delete(Objects.requireNonNull(lodging));
             return Either.right(null);
         } catch (NoSuchElementException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, "Touristic Place not found")});
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_LODGING, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_LODGING, e.getMessage())});
         }
     }
@@ -122,8 +130,10 @@ public class LodgingServiceImpl implements LodgingService {
             Lodging lodging = repository.findById(id).orElse(null);
             return Either.right(lodging != null ? LodgingResponseDTO.lodgingToResponseDTO(lodging) : null);
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
         }
     }
@@ -136,6 +146,7 @@ public class LodgingServiceImpl implements LodgingService {
             Page<Lodging> lodgings = repository.findByTouristicPlace(place, pageable);
             return Either.right(lodgings.map(LodgingResponseDTO::lodgingToResponseDTO));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
         }
     }

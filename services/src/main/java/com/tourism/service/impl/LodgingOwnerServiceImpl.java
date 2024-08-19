@@ -69,8 +69,10 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
                 return Either.left(validation.getLeft());
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, e.getMessage())});
         }
     }
@@ -82,6 +84,7 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
             Page<LodgingOwner> owners = repository.findAll(pageable);
             return Either.right(owners.map(LodgingOwnerResponseDTO::lodgingOwnerToResponseDto));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.GENERIC_ERROR, e.getMessage())});
         }
     }
@@ -96,10 +99,13 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
             repository.delete(Objects.requireNonNull(lodgingOwner));
             return Either.right(null);
         } catch (NoSuchElementException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.NULL_ID)});
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_LODGING_OWNER)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_LODGING_OWNER, e.getMessage())});
         }
     }
@@ -109,8 +115,10 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
         try {
             return Either.right(LodgingOwnerResponseDTO.lodgingOwnerToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
         }
     }
@@ -122,8 +130,10 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
             Page<LodgingOwner> owners = repository.findByEmailStartingWithIgnoreCase(email, pageable);
             return Either.right(owners.map(LodgingOwnerResponseDTO::lodgingOwnerToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
         }
     }
@@ -135,8 +145,10 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
             Page<LodgingOwner> owners = repository.findByLastNameStartingWithIgnoreCase(lastName, pageable);
             return Either.right(owners.map(LodgingOwnerResponseDTO::lodgingOwnerToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_LAST_NAME)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
         }
     }

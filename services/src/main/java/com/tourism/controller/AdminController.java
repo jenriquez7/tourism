@@ -90,6 +90,4 @@ public class AdminController {
                                                                                   @Valid @ModelAttribute PageableRequest paging) {
         return ResponseEntityUtil.buildObject(request, adminService.findByEmail(email, paging));
     }
-
-
 }

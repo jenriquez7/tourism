@@ -13,7 +13,7 @@ import com.tourism.repository.UserRepository;
 import com.tourism.service.AuthService;
 import com.tourism.util.ErrorsCode;
 import com.tourism.util.MessageConstants;
-import groovy.util.logging.Slf4j;
+import lombok.extern.slf4j.Slf4j;
 import io.vavr.control.Either;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +70,7 @@ public class AuthServiceImpl implements AuthService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.LOGIN_FAILED.name(), MessageConstants.ERROR_INCORRECT_USER_OR_PASSWORD)});
             }
         } catch (Exception e) {
+            log.info(e.getMessage());
             loginRepository.save(new Login(authUserDto.getEmail(), false));
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, ErrorsCode.LOGIN_FAILED.name(), e.getMessage())});
         }

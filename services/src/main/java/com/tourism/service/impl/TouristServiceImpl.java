@@ -70,8 +70,10 @@ public class TouristServiceImpl implements TouristService {
                 return Either.left(validation.getLeft());
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_TOURIST_NOT_CREATED)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_TOURIST_NOT_CREATED, e.getMessage())});
         }
     }
@@ -83,6 +85,7 @@ public class TouristServiceImpl implements TouristService {
             Page<Tourist> touristsPage = repository.findAll(pageable);
             return Either.right(touristsPage.map(TouristResponseDTO::touristToResponseDto));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTS, e.getMessage())});
         }
     }
@@ -97,10 +100,13 @@ public class TouristServiceImpl implements TouristService {
             repository.delete(Objects.requireNonNull(tourist));
             return Either.right(null);
         } catch (NoSuchElementException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.NULL_ID)});
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_TOURIST)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURIST, e.getMessage())});
         }
     }
@@ -110,8 +116,10 @@ public class TouristServiceImpl implements TouristService {
         try {
             return Either.right(TouristResponseDTO.touristToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURIST, e.getMessage())});
         }
     }
@@ -123,8 +131,10 @@ public class TouristServiceImpl implements TouristService {
             Page<Tourist> tourists = repository.findByEmailStartingWithIgnoreCase(email, pageable);
             return Either.right(tourists.map(TouristResponseDTO::touristToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTS, e.getMessage())});
         }
     }
@@ -136,8 +146,10 @@ public class TouristServiceImpl implements TouristService {
             Page<Tourist> tourists = repository.findByLastNameStartingWithIgnoreCase(lastName, pageable);
             return Either.right(tourists.map(TouristResponseDTO::touristToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_LAST_NAME)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURIST, e.getMessage())});
         }
     }

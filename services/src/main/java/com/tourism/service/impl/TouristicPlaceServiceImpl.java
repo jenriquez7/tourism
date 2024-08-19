@@ -61,10 +61,13 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
 
             return Either.right(TouristicPlaceResponseDTO.touristicPlaceToResponseDTO(repository.save(place)));
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_CREATE_TOURISTIC_PLACE, e.getMessage())});
         } catch (EntityNotFoundException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_CATEGORY_NOT_FOUND, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CREATE_TOURISTIC_PLACE, e.getMessage())});
         }
     }
@@ -84,10 +87,13 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, "Error to delete touristic place")});
             }
         } catch (DataIntegrityViolationException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_UPDATE_TOURISTIC_PLACE, e.getMessage())});
         } catch (EntityNotFoundException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_CATEGORY_NOT_FOUND, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_UPDATE_TOURISTIC_PLACE, e.getMessage())});
         }
     }
@@ -99,6 +105,7 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
             Page<TouristicPlace> places = repository.findAll(pageable);
             return Either.right(places.map(TouristicPlaceResponseDTO::touristicPlaceToResponseDTO));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
         }
     }
@@ -110,8 +117,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
             repository.delete(Objects.requireNonNull(place));
             return Either.right(null);
         } catch (InvalidDataAccessApiUsageException | NoSuchElementException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, e.getMessage())});
         }
     }
@@ -122,8 +131,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
             TouristicPlace place = repository.findById(id).orElse(null);
             return Either.right(place != null ? TouristicPlaceResponseDTO.touristicPlaceToResponseDTO(place) : null);
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
         }
     }
@@ -135,8 +146,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
             Page<TouristicPlace> places = repository.findByNameStartingWithIgnoreCase(email, pageable);
             return Either.right(places.map(TouristicPlaceResponseDTO::touristicPlaceToResponseDTO));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
         }
 
@@ -149,8 +162,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
             Page<TouristicPlace> places = repository.findByRegion(region, pageable);
             return Either.right(places.map(TouristicPlaceResponseDTO::touristicPlaceToResponseDTO));
         } catch (InvalidDataAccessApiUsageException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
         }
     }
