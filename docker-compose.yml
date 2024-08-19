@@ -7,6 +7,7 @@ services:
       - "8080:8080"
       - "5005:5005"
     environment:
+      - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/tourism?characterEncoding=UTF-8
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=india
