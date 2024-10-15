@@ -211,8 +211,8 @@ class TouristControllerTests {
         assertEquals(1, resultPage.getContent().size());
 
         TouristResponseDTO resultTourist = resultPage.getContent().getFirst();
-        assertEquals(touristResponseDTO.getId(), resultTourist.getId());
-        assertEquals(touristResponseDTO.getEmail(), resultTourist.getEmail());
+        assertEquals(touristResponseDTO.id(), resultTourist.id());
+        assertEquals(touristResponseDTO.email(), resultTourist.email());
     }
 
     private void verifyTouristResponseDto(ResponseEntity<StandardResponseDto<TouristResponseDTO>> response) {
@@ -226,7 +226,7 @@ class TouristControllerTests {
         assertInstanceOf(TouristResponseDTO.class, data[0]);
 
         TouristResponseDTO resultTourist = (TouristResponseDTO) data[0];
-        assertEquals(touristResponseDTO.getId(), resultTourist.getId());
-        assertEquals(touristResponseDTO.getEmail(), resultTourist.getEmail());
+        assertEquals(touristResponseDTO.id(), resultTourist.id());
+        assertEquals(touristResponseDTO.email(), resultTourist.email());
     }
 }

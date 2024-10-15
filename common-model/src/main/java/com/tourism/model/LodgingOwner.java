@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
@@ -24,12 +26,10 @@ public class LodgingOwner extends User {
     private String lastName;
 
     public LodgingOwner(String email, String password, String firstName, String lastName, Role role, Boolean enabled) {
-        super();
-        this.email = email;
+        super(UUID.randomUUID(), email, role);
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.role = role;
         this.enabled = enabled;
     }
 

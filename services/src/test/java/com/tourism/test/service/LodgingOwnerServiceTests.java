@@ -1,10 +1,13 @@
 package com.tourism.test.service;
 
+import com.tourism.dto.mappers.LodgingOwnerMapper;
 import com.tourism.dto.request.LodgingOwnerRequestDTO;
 import com.tourism.dto.request.PageableRequest;
+import com.tourism.dto.response.AdminResponseDTO;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.LodgingOwnerResponseDTO;
 import com.tourism.infrastructure.PasswordEncryptionService;
+import com.tourism.model.Admin;
 import com.tourism.model.Role;
 import com.tourism.model.LodgingOwner;
 import com.tourism.model.User;
@@ -66,6 +69,9 @@ class LodgingOwnerServiceTests {
     @Mock
     private PageService pageService;
 
+    @Mock
+    private LodgingOwnerMapper mapper;
+
     @InjectMocks
     private LodgingOwnerServiceImpl service;
 
@@ -73,6 +79,7 @@ class LodgingOwnerServiceTests {
     private LodgingOwner owner;
     private PageableRequest pageableRequest;
     private Pageable pageable;
+    private LodgingOwnerResponseDTO responseDTO;
 
     @BeforeEach
     void setUp() {
@@ -80,17 +87,18 @@ class LodgingOwnerServiceTests {
         owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
+        responseDTO = new LodgingOwnerResponseDTO(UUID.randomUUID(), owner.getEmail(), owner.getFirstName(), owner.getLastName());
     }
 
     @Test
     @DisplayName("Create Lodging Owner - Success")
     void createLodgingOwnerSuccess() {
-        UUID id = UUID.randomUUID();
+        when(mapper.modelToResponseDto(any(LodgingOwner.class))).thenReturn(responseDTO);
         when(userValidation.validateEmailAndPassword(validRequestDTO.getEmail(), validRequestDTO.getPassword())).thenReturn(Either.right(true));
         when(encryptionService.encryptPassword(validRequestDTO.getPassword())).thenReturn("encryptedPassword");
         when(repository.save(any(LodgingOwner.class))).thenAnswer(invocation -> {
             owner = invocation.getArgument(0);
-            owner.setId(id);
+            owner.setId(responseDTO.id());
             return owner;
         });
 
@@ -99,10 +107,10 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isRight());
         LodgingOwnerResponseDTO responseDTO = result.get();
         assertNotNull(responseDTO);
-        assertEquals(id, responseDTO.getId());
-        assertEquals(validRequestDTO.getEmail(), responseDTO.getEmail());
-        assertEquals(validRequestDTO.getFirstName(), responseDTO.getFirstName());
-        assertEquals(validRequestDTO.getLastName(), responseDTO.getLastName());
+        assertEquals(responseDTO.id(), responseDTO.id());
+        assertEquals(validRequestDTO.getEmail(), responseDTO.email());
+        assertEquals(validRequestDTO.getFirstName(), responseDTO.firstName());
+        assertEquals(validRequestDTO.getLastName(), responseDTO.lastName());
     }
 
     @Test
@@ -116,8 +124,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("Validation error", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("Validation error", errors[0].message());
     }
 
     @Test
@@ -132,8 +140,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.CONFLICT, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.CONFLICT, errors[0].code());
+        assertEquals(MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, errors[0].message());
     }
 
     @Test
@@ -148,8 +156,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, errors[0].message());
     }
 
     @Test
@@ -160,7 +168,12 @@ class LodgingOwnerServiceTests {
                 new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", Role.LODGING_OWNER, true)
         );
         Page<LodgingOwner> page = new PageImpl<>(owners);
-
+        LodgingOwnerResponseDTO dto1 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getFirst().getEmail(),
+                owners.getFirst().getFirstName(), owners.getFirst().getLastName());
+        LodgingOwnerResponseDTO dto2 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getLast().getEmail(),
+                owners.getLast().getFirstName(), owners.getLast().getLastName());
+        when(mapper.modelToResponseDto(owners.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(owners.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findAll(pageable)).thenReturn(page);
         Either<ErrorDto[], Page<LodgingOwnerResponseDTO>> result = service.findAll(pageableRequest);
@@ -168,8 +181,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isRight());
         Page<LodgingOwnerResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("owner@email.com", resultPage.getContent().get(0).getEmail());
-        assertEquals("owner2@email.com", resultPage.getContent().get(1).getEmail());
+        assertEquals("owner@email.com", resultPage.getContent().get(0).email());
+        assertEquals("owner2@email.com", resultPage.getContent().get(1).email());
     }
 
     @Test
@@ -198,9 +211,9 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].getMessage());
-        assertEquals("Database error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].message());
+        assertEquals("Database error", errors[0].detail());
     }
 
     @Test
@@ -233,8 +246,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_LODGING_OWNER, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_LODGING_OWNER, errors[0].message());
     }
 
     @Test
@@ -249,26 +262,24 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_LODGING_OWNER, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_LODGING_OWNER, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
     @DisplayName("Get Lodging Owner By Id - Success")
     void getByIdSuccess() {
-        UUID id = UUID.randomUUID();
-        owner.setId(id);
+        when(repository.findById(responseDTO.id())).thenReturn(Optional.of(owner));
+        when(mapper.modelToResponseDto(any(LodgingOwner.class))).thenReturn(responseDTO);
 
-        when(repository.findById(id)).thenReturn(Optional.of(owner));
-
-        Either<ErrorDto[], LodgingOwnerResponseDTO> result = service.getById(id);
+        Either<ErrorDto[], LodgingOwnerResponseDTO> result = service.getById(responseDTO.id());
 
         assertTrue(result.isRight());
         LodgingOwnerResponseDTO adminResponseDTO = result.get();
         assertNotNull(adminResponseDTO);
-        assertEquals(id, adminResponseDTO.getId());
-        assertEquals("owner@email.com", adminResponseDTO.getEmail());
+        assertEquals(responseDTO.id(), adminResponseDTO.id());
+        assertEquals("owner@email.com", adminResponseDTO.email());
     }
 
     @Test
@@ -282,8 +293,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].message());
     }
 
     @Test
@@ -297,8 +308,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
     }
 
     @Test
@@ -312,9 +323,9 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
@@ -326,7 +337,13 @@ class LodgingOwnerServiceTests {
                 new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", Role.LODGING_OWNER, true)
         );
         Page<LodgingOwner> page = new PageImpl<>(owners);
+        LodgingOwnerResponseDTO dto1 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getFirst().getEmail(),
+                owners.getFirst().getFirstName(), owners.getFirst().getLastName());
+        LodgingOwnerResponseDTO dto2 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getLast().getEmail(),
+                owners.getLast().getFirstName(), owners.getLast().getLastName());
 
+        when(mapper.modelToResponseDto(owners.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(owners.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findByEmailStartingWithIgnoreCase(email, pageable)).thenReturn(page);
 
@@ -335,8 +352,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isRight());
         Page<LodgingOwnerResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("owner@email.com", resultPage.getContent().get(0).getEmail());
-        assertEquals("owner2@email.com", resultPage.getContent().get(1).getEmail());
+        assertEquals("owner@email.com", resultPage.getContent().get(0).email());
+        assertEquals("owner2@email.com", resultPage.getContent().get(1).email());
     }
 
     @Test
@@ -369,8 +386,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_EMAIL, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_EMAIL, errors[0].message());
     }
 
     @Test
@@ -387,9 +404,9 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
@@ -401,6 +418,12 @@ class LodgingOwnerServiceTests {
                 new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", Role.LODGING_OWNER, true)
         );
         Page<LodgingOwner> page = new PageImpl<>(owners);
+        LodgingOwnerResponseDTO dto1 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getFirst().getEmail(),
+                owners.getFirst().getFirstName(), owners.getFirst().getLastName());
+        LodgingOwnerResponseDTO dto2 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getLast().getEmail(),
+                owners.getLast().getFirstName(), owners.getLast().getLastName());
+        when(mapper.modelToResponseDto(owners.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(owners.getLast())).thenReturn(dto2);
 
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findByLastNameStartingWithIgnoreCase(lastName, pageable)).thenReturn(page);
@@ -410,8 +433,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isRight());
         Page<LodgingOwnerResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("Hotel", resultPage.getContent().get(0).getLastName());
-        assertEquals("Hotel2", resultPage.getContent().get(1).getLastName());
+        assertEquals("Hotel", resultPage.getContent().get(0).lastName());
+        assertEquals("Hotel2", resultPage.getContent().get(1).lastName());
     }
 
     @Test
@@ -444,8 +467,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_LAST_NAME, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_LAST_NAME, errors[0].message());
     }
 
     @Test
@@ -462,8 +485,8 @@ class LodgingOwnerServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_LODGING_OWNER, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 }

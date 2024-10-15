@@ -22,6 +22,7 @@ public interface BookingService {
     Either<ErrorDto[], BookingResponseDTO> getById(UUID id);
     Either<ErrorDto[], BookingResponseDTO> changeState(UUID bookingId, BookingState state, UUID userId);
     void updateToExpiredBookings();
+    void notifyObservers(Booking booking, BookingState state);
     void addObserver(BookingObserver observer);
     void removeObserver(BookingObserver observer);
 }

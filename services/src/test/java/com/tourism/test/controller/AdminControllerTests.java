@@ -75,8 +75,8 @@ class AdminControllerTests {
 
         assertInstanceOf(AdminResponseDTO.class, data[0]);
         AdminResponseDTO resultAdmin = (AdminResponseDTO) data[0];
-        assertEquals(admin.getEmail(), resultAdmin.getEmail());
-        assertEquals(admin.getId(), resultAdmin.getId());
+        assertEquals(admin.email(), resultAdmin.email());
+        assertEquals(admin.id(), resultAdmin.id());
 
         verify(service, times(1)).create(any(AuthUserDto.class));
     }
@@ -105,10 +105,10 @@ class AdminControllerTests {
         assertEquals(2, resultPage.getContent().size());
 
         List<AdminResponseDTO> resultAdmins = resultPage.getContent();
-        assertEquals(admin.getId(), resultAdmins.get(0).getId());
-        assertEquals(admin.getEmail(), resultAdmins.get(0).getEmail());
-        assertEquals(otherAdmin.getId(), resultAdmins.get(1).getId());
-        assertEquals(otherAdmin.getEmail(), resultAdmins.get(1).getEmail());
+        assertEquals(admin.id(), resultAdmins.get(0).id());
+        assertEquals(admin.email(), resultAdmins.get(0).email());
+        assertEquals(otherAdmin.id(), resultAdmins.get(1).id());
+        assertEquals(otherAdmin.email(), resultAdmins.get(1).email());
 
         verify(service, times(1)).findAll(argThat(req ->
                 req.getPage() == 0 &&
@@ -136,8 +136,8 @@ class AdminControllerTests {
         assertInstanceOf(AdminResponseDTO.class, data[0]);
 
         AdminResponseDTO resultAdmin = (AdminResponseDTO) data[0];
-        assertEquals(admin.getId(), resultAdmin.getId());
-        assertEquals(admin.getEmail(), resultAdmin.getEmail());
+        assertEquals(admin.id(), resultAdmin.id());
+        assertEquals(admin.email(), resultAdmin.email());
 
         verify(service, times(1)).getById(id);
     }
@@ -160,8 +160,8 @@ class AdminControllerTests {
         assertInstanceOf(AdminResponseDTO.class, data[0]);
 
         AdminResponseDTO resultAdmin = (AdminResponseDTO) data[0];
-        assertEquals(admin.getId(), resultAdmin.getId());
-        assertEquals(admin.getEmail(), resultAdmin.getEmail());
+        assertEquals(admin.id(), resultAdmin.id());
+        assertEquals(admin.email(), resultAdmin.email());
 
         verify(service, times(1)).delete(id);
     }
@@ -194,8 +194,8 @@ class AdminControllerTests {
         assertEquals(1, resultPage.getContent().size());
 
         AdminResponseDTO resultAdmin = resultPage.getContent().getFirst();
-        assertEquals(admin.getId(), resultAdmin.getId());
-        assertEquals(admin.getEmail(), resultAdmin.getEmail());
+        assertEquals(admin.id(), resultAdmin.id());
+        assertEquals(admin.email(), resultAdmin.email());
 
         verify(service, times(1)).findByEmail(eq(email), argThat(req ->
                 req.getPage() == 0 &&

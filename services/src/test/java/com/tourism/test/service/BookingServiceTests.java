@@ -1,5 +1,6 @@
 package com.tourism.test.service;
 
+import com.tourism.dto.mappers.BookingMapper;
 import com.tourism.dto.request.BookingRequestDTO;
 import com.tourism.dto.request.BookingUpdateRequestDTO;
 import com.tourism.dto.request.PageableRequest;
@@ -61,6 +62,8 @@ class BookingServiceTests {
     private BookingDateRepository dateRepository;
     @Mock
     private DateValidation dateValidation;
+    @Mock
+    private BookingMapper bookingMapper;
 
     @InjectMocks
     private BookingServiceImpl bookingService;
@@ -76,6 +79,7 @@ class BookingServiceTests {
     private PageableRequest pageableRequest;
     private Pageable pageable;
     private Page<Booking> bookingPage;
+    private BookingResponseDTO responseDTO;
 
     @BeforeEach
     void setUp() {
@@ -92,6 +96,7 @@ class BookingServiceTests {
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
         bookingPage = new PageImpl<>(Arrays.asList(new Booking(), new Booking()));
+        responseDTO = new BookingResponseDTO(existingBooking.getId(), lodging.getName(), tourist.getFirstName(), tourist.getLastName(), bookingDto.getCheckIn(), bookingDto.getCheckOut(), existingBooking.getTotalPrice(), lodging.getPhone(), lodging.getInformation(), existingBooking.getState());
         mockDates = Arrays.asList(
                 bookingDto.getCheckIn(),
                 bookingDto.getCheckIn().plusDays(1)
@@ -101,23 +106,33 @@ class BookingServiceTests {
     @Test
     @DisplayName("Create Booking - Success")
     void createBookingSuccess() {
+        BookingResponseDTO dto = new BookingResponseDTO(existingBooking.getId(), lodging.getName(), tourist.getFirstName(), tourist.getLastName(),
+                bookingDto.getCheckIn(), bookingDto.getCheckOut(), existingBooking.getTotalPrice(), lodging.getPhone(),
+                lodging.getInformation(), existingBooking.getState());
         when(dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut())).thenReturn(mockDates);
         when(touristRepository.findById(tourist.getId())).thenReturn(Optional.of(tourist));
         when(lodgingRepository.findById(lodging.getId())).thenReturn(Optional.of(lodging));
         when(bookingValidation.validateBooking(any(), any(), any())).thenReturn(Either.right(true));
-        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bookingMapper.modelToResponseDTO(any(Booking.class))).thenReturn(dto);
+        when(repository.save(any())).thenAnswer(b -> {
+            Booking savedBooking = b.getArgument(0);
+            savedBooking.setId(UUID.randomUUID());
+            return savedBooking;
+        });
+
+
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.create(bookingDto, tourist.getId());
 
         assertTrue(result.isRight());
         BookingResponseDTO response = result.get();
         assertNotNull(response);
-        assertEquals(lodging.getName(), response.getLodgingName());
-        assertEquals(tourist.getFirstName(), response.getFirstName());
-        assertEquals(tourist.getLastName(), response.getLastName());
-        assertEquals(bookingDto.getCheckIn(), response.getCheckIn());
-        assertEquals(bookingDto.getCheckOut(), response.getCheckOut());
-        assertEquals(BookingState.CREATED, response.getState());
+        assertEquals(lodging.getName(), response.lodgingName());
+        assertEquals(tourist.getFirstName(), response.firstName());
+        assertEquals(tourist.getLastName(), response.lastName());
+        assertEquals(dto.checkIn(), response.checkIn());
+        assertEquals(dto.checkOut(), response.checkOut());
+        assertEquals(BookingState.CREATED, response.state());
     }
 
     @Test
@@ -125,15 +140,15 @@ class BookingServiceTests {
     void createBookingValidationFails() {
         when(touristRepository.findById(tourist.getId())).thenReturn(Optional.of(tourist));
         when(lodgingRepository.findById(lodging.getId())).thenReturn(Optional.of(lodging));
-        when(bookingValidation.validateBooking(any(), any(), any())).thenReturn(Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, "Validation failed")}));
+        when(bookingValidation.validateBooking(any(), any(), any())).thenReturn(Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, "Validation failed")}));
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.create(bookingDto, tourist.getId());
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("Validation failed", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("Validation failed", errors[0].message());
     }
 
     @Test
@@ -146,8 +161,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertTrue(errors[0].getMessage().contains(MessageConstants.ERROR_BOOKING_NOT_CREATED));
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertTrue(errors[0].message().contains(MessageConstants.ERROR_BOOKING_NOT_CREATED));
     }
 
     @Test
@@ -161,8 +176,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertTrue(errors[0].getMessage().contains(MessageConstants.ERROR_BOOKING_NOT_CREATED));
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertTrue(errors[0].message().contains(MessageConstants.ERROR_BOOKING_NOT_CREATED));
     }
 
     @Test
@@ -179,19 +194,23 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_ACCEPTABLE, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_ACCEPTABLE, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_NOT_CREATED, errors[0].message());
     }
 
     @Test
     @DisplayName("Update Booking - Success")
     void updateBookingSuccess() {
+        BookingResponseDTO dto = new BookingResponseDTO(existingBooking.getId(), lodging.getName(), tourist.getFirstName(), tourist.getLastName(),
+                bookingDto.getCheckIn(), bookingDto.getCheckOut(), existingBooking.getTotalPrice(), lodging.getPhone(),
+                lodging.getInformation(), BookingState.CREATED);
         when(dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut())).thenReturn(mockDates);
         doNothing().when(dateRepository).deleteByBooking(existingBooking);
         when(touristRepository.findById(tourist.getId())).thenReturn(Optional.of(tourist));
         when(repository.findById(updateDto.getBookingId())).thenReturn(Optional.of(existingBooking));
         when(lodgingRepository.findById(lodging.getId())).thenReturn(Optional.of(lodging));
         when(bookingValidation.validateBooking(any(), any(), any())).thenReturn(Either.right(true));
+        when(bookingMapper.modelToResponseDTO(any(Booking.class))).thenReturn(dto);
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.update(updateDto, tourist.getId());
@@ -199,9 +218,9 @@ class BookingServiceTests {
         assertTrue(result.isRight());
         BookingResponseDTO response = result.get();
         assertNotNull(response);
-        assertEquals(updateDto.getCheckIn(), response.getCheckIn());
-        assertEquals(updateDto.getCheckOut(), response.getCheckOut());
-        assertEquals(BookingState.CREATED, response.getState());
+        assertEquals(dto.checkIn(), response.checkIn());
+        assertEquals(dto.checkOut(), response.checkOut());
+        assertEquals(BookingState.CREATED, response.state());
     }
 
     @Test
@@ -215,8 +234,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_NOT_FOUND, errors[0].message());
     }
 
     @Test
@@ -225,15 +244,15 @@ class BookingServiceTests {
         when(touristRepository.findById(tourist.getId())).thenReturn(Optional.of(tourist));
         when(repository.findById(updateDto.getBookingId())).thenReturn(Optional.of(existingBooking));
         when(lodgingRepository.findById(lodging.getId())).thenReturn(Optional.of(lodging));
-        when(bookingValidation.validateBooking(any(), any(), any())).thenReturn(Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, "Validation failed")}));
+        when(bookingValidation.validateBooking(any(), any(), any())).thenReturn(Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, "Validation failed")}));
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.update(updateDto, tourist.getId());
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("Validation failed", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("Validation failed", errors[0].message());
     }
 
     @Test
@@ -252,8 +271,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.CONFLICT, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_NOT_UPDATED, errors[0].getMessage());
+        assertEquals(HttpStatus.CONFLICT, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_NOT_UPDATED, errors[0].message());
     }
 
     @Test
@@ -270,8 +289,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_NOT_UPDATED, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_NOT_UPDATED, errors[0].message());
     }
 
     @Test
@@ -285,6 +304,7 @@ class BookingServiceTests {
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
         when(repository.findAll(pageable)).thenReturn(bookingPage);
+        when(bookingMapper.modelToResponseDTO(any(Booking.class))).thenReturn(responseDTO);
 
         Either<ErrorDto[], Page<BookingResponseDTO>> result = bookingService.findAll(pageableRequest);
 
@@ -296,11 +316,11 @@ class BookingServiceTests {
         assertEquals(bookingPage.getTotalPages(), responsePage.getTotalPages());
 
         BookingResponseDTO responseDTO = responsePage.getContent().getFirst();
-        assertEquals(lodging.getName(), responseDTO.getLodgingName());
-        assertEquals(tourist.getFirstName(), responseDTO.getFirstName());
-        assertEquals(tourist.getLastName(), responseDTO.getLastName());
-        assertEquals(100.0, responseDTO.getTotalPrice());
-        assertEquals(BookingState.CREATED, responseDTO.getState());
+        assertEquals(lodging.getName(), responseDTO.lodgingName());
+        assertEquals(tourist.getFirstName(), responseDTO.firstName());
+        assertEquals(tourist.getLastName(), responseDTO.lastName());
+        assertEquals(100.0, responseDTO.totalPrice());
+        assertEquals(BookingState.CREATED, responseDTO.state());
     }
 
     @Test
@@ -329,9 +349,9 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].getMessage());
-        assertEquals("Test exception", errors[0].getDetail());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].message());
+        assertEquals("Test exception", errors[0].detail());
     }
 
     @Test
@@ -362,8 +382,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_NOT_FOUND, errors[0].message());
     }
 
     @Test
@@ -379,8 +399,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_BOOKING, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_BOOKING, errors[0].message());
     }
 
     @Test
@@ -390,18 +410,19 @@ class BookingServiceTests {
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
         when(repository.findById(existingBooking.getId())).thenReturn(Optional.of(existingBooking));
         when(pricingService.calculateBookingPrice(eq(TouristType.STANDARD), any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
+        when(bookingMapper.modelToResponseDTO(any(Booking.class))).thenReturn(responseDTO);
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.getById(existingBooking.getId());
 
         assertTrue(result.isRight());
         BookingResponseDTO responseDTO = result.get();
         assertNotNull(responseDTO);
-        assertEquals(existingBooking.getId(), responseDTO.getBookingId());
-        assertEquals(lodging.getName(), responseDTO.getLodgingName());
-        assertEquals(tourist.getFirstName(), responseDTO.getFirstName());
-        assertEquals(tourist.getLastName(), responseDTO.getLastName());
-        assertEquals(100.0, responseDTO.getTotalPrice());
-        assertEquals(BookingState.CREATED, responseDTO.getState());
+        assertEquals(existingBooking.getId(), responseDTO.id());
+        assertEquals(lodging.getName(), responseDTO.lodgingName());
+        assertEquals(tourist.getFirstName(), responseDTO.firstName());
+        assertEquals(tourist.getLastName(), responseDTO.lastName());
+        assertEquals(100.0, responseDTO.totalPrice());
+        assertEquals(BookingState.CREATED, responseDTO.state());
     }
 
     @Test
@@ -415,8 +436,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
     }
 
     @Test
@@ -430,14 +451,17 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_BOOKING, errors[0].getMessage());
-        assertEquals("Test exception", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_BOOKING, errors[0].message());
+        assertEquals("Test exception", errors[0].detail());
     }
 
     @Test
     @DisplayName("Change Booking State - Success")
     void changeBookingStateSuccess() {
+        BookingResponseDTO dto = new BookingResponseDTO(existingBooking.getId(), lodging.getName(), tourist.getFirstName(), tourist.getLastName(),
+                bookingDto.getCheckIn(), bookingDto.getCheckOut(), existingBooking.getTotalPrice(), lodging.getPhone(),
+                lodging.getInformation(), BookingState.ACCEPTED);
         UUID bookingId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         when(repository.findById(bookingId)).thenReturn(Optional.of(existingBooking));
@@ -445,13 +469,14 @@ class BookingServiceTests {
         when(repository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(pricingService.calculateBookingPrice(eq(TouristType.STANDARD), any(), any(), anyInt(), anyInt(), anyInt())).thenReturn(100.0);
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
+        when(bookingMapper.modelToResponseDTO(any(Booking.class))).thenReturn(dto);
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.changeState(bookingId, BookingState.ACCEPTED, userId);
 
         assertTrue(result.isRight());
         BookingResponseDTO responseDTO = result.get();
         assertNotNull(responseDTO);
-        assertEquals(BookingState.ACCEPTED, responseDTO.getState());
+        assertEquals(BookingState.ACCEPTED, responseDTO.state());
         verify(repository).save(existingBooking);
     }
 
@@ -467,8 +492,8 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_NOT_FOUND, errors[0].message());
     }
 
     @Test
@@ -477,15 +502,15 @@ class BookingServiceTests {
         UUID bookingId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         when(repository.findById(bookingId)).thenReturn(Optional.of(existingBooking));
-        when(bookingValidation.validChangeState(existingBooking, BookingState.ACCEPTED, userId)).thenReturn(Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, "Invalid state change")}));
+        when(bookingValidation.validChangeState(existingBooking, BookingState.ACCEPTED, userId)).thenReturn(Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, "Invalid state change")}));
 
         Either<ErrorDto[], BookingResponseDTO> result = bookingService.changeState(bookingId, BookingState.ACCEPTED, userId);
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE, errors[0].message());
     }
 
     @Test
@@ -500,9 +525,9 @@ class BookingServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, errors[0].getMessage());
-        assertEquals("Test exception", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, errors[0].message());
+        assertEquals("Test exception", errors[0].detail());
     }
 
     @Test

@@ -6,11 +6,7 @@ import com.tourism.dto.response.LodgingResponseDTO;
 import com.tourism.dto.response.StandardResponseDto;
 import com.tourism.dto.response.TouristicPlaceResponseDTO;
 import com.tourism.infrastructure.JwtTokenProvider;
-import com.tourism.model.Role;
-import com.tourism.model.Lodging;
-import com.tourism.model.LodgingOwner;
-import com.tourism.model.TouristicPlace;
-import com.tourism.model.User;
+import com.tourism.model.*;
 import com.tourism.service.LodgingService;
 import io.vavr.control.Either;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +25,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -58,8 +55,9 @@ class LodgingControllerTests {
 
     @BeforeEach
     void setUp() {
+        TouristicPlaceResponseDTO tpResponseDto = new TouristicPlaceResponseDTO(UUID.randomUUID(), "Punta del Este", "Hermoso lugar", Region.EAST, new ArrayList<>(), true);;
         lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), new LodgingOwner(), true);
-        lodgingResponseDTO = new LodgingResponseDTO(UUID.randomUUID(),"Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlaceResponseDTO(), true);
+        lodgingResponseDTO = new LodgingResponseDTO(UUID.randomUUID(),"Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, tpResponseDto, true);
     }
 
     @Test
@@ -159,10 +157,10 @@ class LodgingControllerTests {
         assertInstanceOf(LodgingResponseDTO.class, data[0]);
 
         LodgingResponseDTO responseDto = (LodgingResponseDTO) data[0];
-        assertEquals(lodgingResponseDTO.getId(), responseDto.getId());
-        assertEquals(lodgingResponseDTO.getName(), responseDto.getName());
-        assertEquals(lodgingResponseDTO.getStars(), responseDto.getStars());
-        assertEquals(lodgingResponseDTO.getDescription(), responseDto.getDescription());
+        assertEquals(lodgingResponseDTO.id(), responseDto.id());
+        assertEquals(lodgingResponseDTO.name(), responseDto.name());
+        assertEquals(lodgingResponseDTO.stars(), responseDto.stars());
+        assertEquals(lodgingResponseDTO.description(), responseDto.description());
     }
 
     private void verifyPageLodgingResponseDto(ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response) {
@@ -180,9 +178,9 @@ class LodgingControllerTests {
         assertEquals(1, resultPage.getContent().size());
 
         LodgingResponseDTO responseDto = resultPage.getContent().getFirst();
-        assertEquals(lodgingResponseDTO.getId(), responseDto.getId());
-        assertEquals(lodgingResponseDTO.getName(), responseDto.getName());
-        assertEquals(lodgingResponseDTO.getDescription(), responseDto.getDescription());
-        assertEquals(lodgingResponseDTO.getStars(), responseDto.getStars());
+        assertEquals(lodgingResponseDTO.id(), responseDto.id());
+        assertEquals(lodgingResponseDTO.name(), responseDto.name());
+        assertEquals(lodgingResponseDTO.description(), responseDto.description());
+        assertEquals(lodgingResponseDTO.stars(), responseDto.stars());
     }
 }

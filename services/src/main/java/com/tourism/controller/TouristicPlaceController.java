@@ -60,7 +60,7 @@ public class TouristicPlaceController {
             return ResponseEntityUtil.buildObject(request, placeService.create(touristicPlaceDto, user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to create touristic place. User Not logged")}));
+                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to create touristic place. User Not logged", null)}));
         }
     }
 

@@ -61,7 +61,7 @@ public class BookingController {
             return ResponseEntityUtil.buildObject(request, service.create(booking, user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to create booking. User Not logged")}));
+                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to create booking. User Not logged", null)}));
         }
     }
 
@@ -76,7 +76,7 @@ public class BookingController {
             return ResponseEntityUtil.buildObject(request, service.update(bookingDto, user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to update booking. User Not logged")}));
+                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to update booking. User Not logged", null)}));
         }
     }
 

@@ -1,5 +1,6 @@
 package com.tourism.service.impl;
 
+import com.tourism.dto.mappers.BookingMapper;
 import com.tourism.dto.request.BookingRequestDTO;
 import com.tourism.dto.request.BookingUpdateRequestDTO;
 import com.tourism.dto.request.PageableRequest;
@@ -40,6 +41,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingDateRepository dateRepository;
     private final PageService pageService;
     private final PricingService pricingService;
+    private final BookingMapper mapper;
 
     private final List<BookingObserver> observers = new ArrayList<>();
 
@@ -48,7 +50,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingServiceImpl(BookingRepository repository, TouristRepository touristRepository,
                               LodgingRepository lodgingRepository, BookingValidation bookingValidation,
                               DateValidation dateValidation, BookingDateRepository dateRepository, PageService pageService,
-                              PricingService pricingService) {
+                              PricingService pricingService, BookingMapper mapper) {
         this.repository = repository;
         this.touristRepository = touristRepository;
         this.lodgingRepository = lodgingRepository;
@@ -57,6 +59,7 @@ public class BookingServiceImpl implements BookingService {
         this.dateRepository = dateRepository;
         this.pageService = pageService;
         this.pricingService = pricingService;
+        this.mapper = mapper;
     }
 
     @Override
@@ -69,13 +72,13 @@ public class BookingServiceImpl implements BookingService {
             Either<ErrorDto[], Boolean> validation = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
             if (validation.isRight()) {
-                Either<ErrorDto[], Booking> booking = this.createBooking(bookingDto, lodging, tourist);
+                Either<ErrorDto[], Booking> booking = this.createBooking(bookingDto, lodging, Objects.requireNonNull(tourist));
                 if (booking.isRight()) {
                     notifyObservers(booking.get(), BookingState.CREATED);
                 } else {
                     return Either.left(validation.getLeft());
                 }
-                return Either.right(BookingResponseDTO.bookingToResponseDTO(booking.get()));
+                return Either.right(mapper.modelToResponseDTO(booking.get()));
             } else {
                 return Either.left(validation.getLeft());
             }
@@ -113,12 +116,12 @@ public class BookingServiceImpl implements BookingService {
 
                     List<LocalDate> bookingDays = dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut());
                     createBookingDates(bookingRequest, booking.getLodging(), bookingDays, booking);
-                    return Either.right(BookingResponseDTO.bookingToResponseDTO(booking));
+                    return Either.right(mapper.modelToResponseDTO(booking));
                 } else {
                     return Either.left(validation.getLeft());
                 }
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND, null)});
             }
         } catch (DataIntegrityViolationException e) {
             log.error(e.getMessage());
@@ -137,7 +140,7 @@ public class BookingServiceImpl implements BookingService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<Booking> bookings = repository.findAll(pageable);
-            return Either.right(bookings.map(BookingResponseDTO::bookingToResponseDTO));
+            return Either.right(bookings.map(mapper::modelToResponseDTO));
         } catch (Exception e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.GENERIC_ERROR, e.getMessage())});
@@ -152,7 +155,7 @@ public class BookingServiceImpl implements BookingService {
             return Either.right(null);
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
+            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND, null)});
         } catch (Exception e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_BOOKING, e.getMessage())});
@@ -164,9 +167,9 @@ public class BookingServiceImpl implements BookingService {
         try {
             Booking booking = repository.findById(id).orElse(null);
             if (booking != null) {
-                return Either.right(BookingResponseDTO.bookingToResponseDTO(booking));
+                return Either.right(mapper.modelToResponseDTO(booking));
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID, null)});
             }
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -188,12 +191,12 @@ public class BookingServiceImpl implements BookingService {
                     booking.setState(newState);
                     repository.save(booking);
                 } else {
-                    return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE)});
+                    return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE, null)});
                 }
 
-                return Either.right(BookingResponseDTO.bookingToResponseDTO(booking));
+                return Either.right(mapper.modelToResponseDTO(booking));
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND, null)});
             }
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -216,6 +219,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public void notifyObservers(Booking booking, BookingState state) {
+        for (BookingObserver observer : observers) {
+            observer.notifyStatusChange(booking, state);
+        }
+    }
+
+    @Override
     public void addObserver(BookingObserver observer) {
         observers.add(observer);
     }
@@ -225,11 +235,6 @@ public class BookingServiceImpl implements BookingService {
         observers.remove(observer);
     }
 
-    private void notifyObservers(Booking booking, BookingState state) {
-        for (BookingObserver observer : observers) {
-            observer.notifyStatusChange(booking, state);
-        }
-    }
 
     private Either<ErrorDto[], Booking> createBooking(BookingRequestDTO bookingDto, Lodging lodging, Tourist tourist) {
         List<LocalDate> bookingDays = dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut());

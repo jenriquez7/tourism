@@ -91,8 +91,8 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].message());
         verify(loginRepository).save(any(Login.class));
     }
 
@@ -107,9 +107,9 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].getMessage());
-        assertEquals("Database error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].message());
+        assertEquals("Database error", errors[0].detail());
         verify(loginRepository).save(any(Login.class));
     }
 
@@ -142,8 +142,8 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(ErrorsCode.LOGOUT_FAILED.name(), errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(ErrorsCode.LOGOUT_FAILED.name(), errors[0].message());
     }
 
     @Test
@@ -179,8 +179,8 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("INVALID_REFRESH_TOKEN", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("INVALID_REFRESH_TOKEN", errors[0].message());
     }
 
     @Test
@@ -196,7 +196,7 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("INVALID_REFRESH_TOKEN", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("INVALID_REFRESH_TOKEN", errors[0].message());
     }
 }

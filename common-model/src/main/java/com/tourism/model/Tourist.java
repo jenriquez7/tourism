@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
@@ -29,12 +31,10 @@ public class Tourist extends User {
 
     public Tourist(String email, String password, String firstName, String lastName, Role role,
                    TouristType type, Boolean enabled) {
-        super();
-        this.email = email;
+        super(UUID.randomUUID(), email, role);
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.role = role;
         this.type = type;
         this.enabled = enabled;
     }

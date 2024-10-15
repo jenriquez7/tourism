@@ -86,7 +86,7 @@ public class LodgingOwnerController {
             return ResponseEntityUtil.buildObject(request, touristService.delete(user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
+                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
         }
     }
 
@@ -110,7 +110,7 @@ public class LodgingOwnerController {
             return ResponseEntityUtil.buildObject(request, touristService.getById(user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
+                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
         }
     }
 

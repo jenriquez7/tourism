@@ -1,5 +1,6 @@
 package com.tourism.service.impl;
 
+import com.tourism.dto.mappers.AdminMapper;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.model.Role;
 import com.tourism.dto.request.AuthUserDto;
@@ -37,16 +38,19 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordEncryptionService encryptionService;
     private final UserValidation userValidation;
     private final PageService pageService;
+    private final AdminMapper mapper;
 
     @Autowired
     public AdminServiceImpl(AdminRepository repository, UserRepository userRepository, RefreshTokenRepository tokenRepository,
-                            PasswordEncryptionService encryptionService, UserValidation userValidation, PageService pageService) {
+                            PasswordEncryptionService encryptionService, UserValidation userValidation, PageService pageService,
+                            AdminMapper mapper) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.encryptionService = encryptionService;
         this.userValidation = userValidation;
         this.pageService = pageService;
+        this.mapper = mapper;
     }
 
     @Override
@@ -55,16 +59,16 @@ public class AdminServiceImpl implements AdminService {
             Either<ErrorDto[], Boolean> validation = userValidation.validateEmailAndPassword(userDto.getEmail(), userDto.getPassword());
             if (validation.isRight()) {
                 Admin admin = repository.save(new Admin(userDto.getEmail(), encryptionService.encryptPassword(userDto.getPassword()), Role.ADMIN, true));
-                return Either.right(admin.getId() != null ? AdminResponseDTO.adminToResponseDto(admin) : null);
+                return Either.right(admin.getId() != null ? mapper.modelToResponseDto(admin) : null);
             } else {
                 return Either.left(validation.getLeft());
             }
         } catch (DataIntegrityViolationException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_ADMIN_NOT_CREATED, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.CONFLICT, MessageConstants.ERROR_ADMIN_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CREATE_ADMIN, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CREATE_ADMIN, e.getMessage())});
         }
     }
 
@@ -73,10 +77,10 @@ public class AdminServiceImpl implements AdminService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<Admin> adminsPage = repository.findAll(pageable);
-            return Either.right(adminsPage.map(AdminResponseDTO::adminToResponseDto));
+            return Either.right(adminsPage.map(mapper::modelToResponseDto));
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
 
@@ -90,26 +94,26 @@ public class AdminServiceImpl implements AdminService {
                 repository.delete(Objects.requireNonNull(admin));
                 return Either.right(null);
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CANNOT_DELETE_LAST_ADMIN)});
+                return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CANNOT_DELETE_LAST_ADMIN)});
             }
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_ADMIN_NOT_FOUND)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_ADMIN_NOT_FOUND)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
 
     @Override
     public Either<ErrorDto[], AdminResponseDTO> getById(UUID id) {
         try {
-            return Either.right(AdminResponseDTO.adminToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
+            return Either.right(mapper.modelToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
         } catch (InvalidDataAccessApiUsageException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
 
@@ -118,13 +122,13 @@ public class AdminServiceImpl implements AdminService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<Admin> adminsPage = repository.findByEmailStartingWithIgnoreCase(email, pageable);
-            return Either.right(adminsPage.map(AdminResponseDTO::adminToResponseDto));
+            return Either.right(adminsPage.map(mapper::modelToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_ADMINS, e.getMessage())});
         }
     }
 }

@@ -100,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.INVALID_REFRESH_TOKEN.name(), MessageConstants.ERROR_REFRESH_TOKEN_NOT_FOUND)});
             }
         } else {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.INVALID_REFRESH_TOKEN.name())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, ErrorsCode.INVALID_REFRESH_TOKEN.name())});
         }
     }
 

@@ -1,14 +1,12 @@
 package com.tourism.test.service;
 
+import com.tourism.dto.mappers.TouristMapper;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.request.TouristRequestDTO;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.TouristResponseDTO;
 import com.tourism.infrastructure.PasswordEncryptionService;
-import com.tourism.model.Role;
-import com.tourism.model.Tourist;
-import com.tourism.model.TouristType;
-import com.tourism.model.User;
+import com.tourism.model.*;
 import com.tourism.repository.RefreshTokenRepository;
 import com.tourism.repository.TouristRepository;
 import com.tourism.repository.UserRepository;
@@ -68,6 +66,9 @@ class TouristServiceTests {
     @Mock
     private PageService pageService;
 
+    @Mock
+    private TouristMapper mapper;
+
     @InjectMocks
     private TouristServiceImpl service;
 
@@ -75,6 +76,7 @@ class TouristServiceTests {
     private Tourist tourist;
     private PageableRequest pageableRequest;
     private Pageable pageable;
+    private TouristResponseDTO responseDTO;
 
     @BeforeEach
     void setUp() {
@@ -82,17 +84,18 @@ class TouristServiceTests {
         tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
+        responseDTO = new TouristResponseDTO(UUID.randomUUID(), tourist.getEmail(), tourist.getFirstName(), tourist.getLastName());
     }
 
     @Test
     @DisplayName("Create Tourist - Success")
     void createSuccess() {
-        UUID id = UUID.randomUUID();
+        when(mapper.modelToResponseDto(any(Tourist.class))).thenReturn(responseDTO);
         when(userValidation.validateEmailAndPassword(validRequestDTO.getEmail(), validRequestDTO.getPassword())).thenReturn(Either.right(true));
         when(encryptionService.encryptPassword(validRequestDTO.getPassword())).thenReturn("encryptedPassword");
         when(repository.save(any(Tourist.class))).thenAnswer(invocation -> {
             tourist = invocation.getArgument(0);
-            tourist.setId(id);
+            tourist.setId(responseDTO.id());
             return tourist;
         });
 
@@ -101,10 +104,9 @@ class TouristServiceTests {
         assertTrue(result.isRight());
         TouristResponseDTO responseDTO = result.get();
         assertNotNull(responseDTO);
-        assertEquals(id, responseDTO.getId());
-        assertEquals(validRequestDTO.getEmail(), responseDTO.getEmail());
-        assertEquals(validRequestDTO.getFirstName(), responseDTO.getFirstName());
-        assertEquals(validRequestDTO.getLastName(), responseDTO.getLastName());
+        assertEquals(validRequestDTO.getEmail(), responseDTO.email());
+        assertEquals(validRequestDTO.getFirstName(), responseDTO.firstName());
+        assertEquals(validRequestDTO.getLastName(), responseDTO.lastName());
     }
 
     @Test
@@ -118,8 +120,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("Validation error", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("Validation error", errors[0].message());
     }
 
     @Test
@@ -134,8 +136,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.CONFLICT, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_TOURIST_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.CONFLICT, errors[0].code());
+        assertEquals(MessageConstants.ERROR_TOURIST_NOT_CREATED, errors[0].message());
     }
 
     @Test
@@ -150,8 +152,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_TOURIST_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_TOURIST_NOT_CREATED, errors[0].message());
     }
 
     @Test
@@ -162,7 +164,11 @@ class TouristServiceTests {
                 new Tourist("tinvierno@email.com", "validPassword123", "Turista", "Invierno", Role.TOURIST, TouristType.STANDARD, true)
         );
         Page<Tourist> page = new PageImpl<>(tourists);
+        TouristResponseDTO dto1 = new TouristResponseDTO(UUID.randomUUID(),tourists.getFirst().getEmail(), tourists.getFirst().getFirstName(), tourists.getFirst().getLastName());
+        TouristResponseDTO dto2 = new TouristResponseDTO(UUID.randomUUID(),tourists.getLast().getEmail(), tourists.getLast().getFirstName(), tourists.getLast().getLastName());
 
+        when(mapper.modelToResponseDto(tourists.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(tourists.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findAll(pageable)).thenReturn(page);
         Either<ErrorDto[], Page<TouristResponseDTO>> result = service.findAll(pageableRequest);
@@ -170,8 +176,8 @@ class TouristServiceTests {
         assertTrue(result.isRight());
         Page<TouristResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("tverano@email.com", resultPage.getContent().get(0).getEmail());
-        assertEquals("tinvierno@email.com", resultPage.getContent().get(1).getEmail());
+        assertEquals("tverano@email.com", resultPage.getContent().get(0).email());
+        assertEquals("tinvierno@email.com", resultPage.getContent().get(1).email());
     }
 
     @Test
@@ -200,9 +206,9 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURISTS, errors[0].getMessage());
-        assertEquals("Database error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURISTS, errors[0].message());
+        assertEquals("Database error", errors[0].detail());
     }
 
     @Test
@@ -235,8 +241,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_TOURIST, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_TOURIST, errors[0].message());
     }
 
     @Test
@@ -251,26 +257,24 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
     @DisplayName("Get Tourist By Id - Success")
     void getByIdSuccess() {
-        UUID id = UUID.randomUUID();
-        tourist.setId(id);
+        when(repository.findById(responseDTO.id())).thenReturn(Optional.of(tourist));
+        when(mapper.modelToResponseDto(any(Tourist.class))).thenReturn(responseDTO);
 
-        when(repository.findById(id)).thenReturn(Optional.of(tourist));
-
-        Either<ErrorDto[], TouristResponseDTO> result = service.getById(id);
+        Either<ErrorDto[], TouristResponseDTO> result = service.getById(responseDTO.id());
 
         assertTrue(result.isRight());
         TouristResponseDTO adminResponseDTO = result.get();
         assertNotNull(adminResponseDTO);
-        assertEquals(id, adminResponseDTO.getId());
-        assertEquals("tverano@email.com", adminResponseDTO.getEmail());
+        assertEquals(responseDTO.id(), adminResponseDTO.id());
+        assertEquals(responseDTO.email(), adminResponseDTO.email());
     }
 
     @Test
@@ -284,8 +288,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].message());
     }
 
     @Test
@@ -299,8 +303,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
     }
 
     @Test
@@ -314,21 +318,25 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
     @DisplayName("Find Tourist By Email - Success")
     void findByEmailSuccess() {
         String email = "owner";
-        List<Tourist> owners = Arrays.asList(
+        List<Tourist> tourists = Arrays.asList(
                 tourist,
                 new Tourist("tinvierno@email.com", "validPassword123", "Turista", "Invierno", Role.TOURIST, TouristType.STANDARD, true)
         );
-        Page<Tourist> page = new PageImpl<>(owners);
+        Page<Tourist> page = new PageImpl<>(tourists);
+        TouristResponseDTO dto1 = new TouristResponseDTO(UUID.randomUUID(),tourists.getFirst().getEmail(), tourists.getFirst().getFirstName(), tourists.getFirst().getLastName());
+        TouristResponseDTO dto2 = new TouristResponseDTO(UUID.randomUUID(),tourists.getLast().getEmail(), tourists.getFirst().getFirstName(), tourists.getFirst().getLastName());
 
+        when(mapper.modelToResponseDto(tourists.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(tourists.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findByEmailStartingWithIgnoreCase(email, pageable)).thenReturn(page);
 
@@ -337,8 +345,8 @@ class TouristServiceTests {
         assertTrue(result.isRight());
         Page<TouristResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("tverano@email.com", resultPage.getContent().get(0).getEmail());
-        assertEquals("tinvierno@email.com", resultPage.getContent().get(1).getEmail());
+        assertEquals(dto1.email(), resultPage.getContent().get(0).email());
+        assertEquals(dto2.email(), resultPage.getContent().get(1).email());
     }
 
     @Test
@@ -371,8 +379,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_EMAIL, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_EMAIL, errors[0].message());
     }
 
     @Test
@@ -389,9 +397,9 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURISTS, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURISTS, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
@@ -403,7 +411,11 @@ class TouristServiceTests {
                 new Tourist("verano@email.com", "validPassword123", "Turista", "Verano Soleado", Role.TOURIST, TouristType.STANDARD, true)
         );
         Page<Tourist> page = new PageImpl<>(tourists);
+        TouristResponseDTO dto1 = new TouristResponseDTO(UUID.randomUUID(),tourists.getFirst().getEmail(), tourists.getFirst().getFirstName(), tourists.getFirst().getLastName());
+        TouristResponseDTO dto2 = new TouristResponseDTO(UUID.randomUUID(),tourists.getLast().getEmail(), tourists.getFirst().getFirstName(), tourists.getFirst().getLastName());
 
+        when(mapper.modelToResponseDto(tourists.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(tourists.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findByLastNameStartingWithIgnoreCase(lastName, pageable)).thenReturn(page);
 
@@ -412,8 +424,8 @@ class TouristServiceTests {
         assertTrue(result.isRight());
         Page<TouristResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("Verano", resultPage.getContent().get(0).getLastName());
-        assertEquals("Verano Soleado", resultPage.getContent().get(1).getLastName());
+        assertEquals(dto1.lastName(), resultPage.getContent().get(0).lastName());
+        assertEquals(dto2.lastName(), resultPage.getContent().get(1).lastName());
     }
 
     @Test
@@ -446,8 +458,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_LAST_NAME, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_LAST_NAME, errors[0].message());
     }
 
     @Test
@@ -464,8 +476,8 @@ class TouristServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURIST, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 }

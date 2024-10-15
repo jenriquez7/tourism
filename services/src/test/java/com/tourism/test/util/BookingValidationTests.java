@@ -77,8 +77,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, null, lodging);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_TOURIST_NOT_FOUND, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_TOURIST_NOT_FOUND, result.getLeft()[0].message());
     }
 
     @Test
@@ -87,8 +87,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, null);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_LODGING_NOT_FOUND, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_LODGING_NOT_FOUND, result.getLeft()[0].message());
     }
 
     @Test
@@ -99,8 +99,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_CHECK_IN_AFTER_CHECKOUT, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_CHECK_IN_AFTER_CHECKOUT, result.getLeft()[0].message());
     }
 
     @Test
@@ -111,8 +111,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_CHECK_IN_IN_THE_PAST, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_CHECK_IN_IN_THE_PAST, result.getLeft()[0].message());
     }
 
     @Test
@@ -139,8 +139,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_ENOUGH_CAPACITY, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_ENOUGH_CAPACITY, result.getLeft()[0].message());
     }
 
     @Test
@@ -151,8 +151,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].message());
     }
 
     @Test
@@ -244,8 +244,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, differentUserId);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_USER_LODGING_OWNER, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_USER_LODGING_OWNER, result.getLeft()[0].message());
     }
 
     @Test
@@ -256,8 +256,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, owner.getId());
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].message());
     }
 
     @Test
@@ -281,8 +281,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, differentUserId);
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_USER_TOURIST, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_USER_TOURIST, result.getLeft()[0].message());
     }
 
     @Test
@@ -293,8 +293,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, tourist.getId());
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].message());
     }
 
     @Test
@@ -323,8 +323,8 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING, owner.getId());
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_ENOUGH_CAPACITY, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_ENOUGH_CAPACITY, result.getLeft()[0].message());
     }
 
     @Test
@@ -336,7 +336,7 @@ class BookingValidationTests {
         Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING, owner.getId());
 
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].message());
     }
 }

@@ -1,5 +1,6 @@
 package com.tourism.service.impl;
 
+import com.tourism.dto.mappers.TouristicPlaceMapper;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.request.TouristicPlaceRequestDTO;
 import com.tourism.dto.response.ErrorDto;
@@ -33,14 +34,17 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final PageService pageService;
+    private final TouristicPlaceMapper mapper;
 
     @Autowired
     public TouristicPlaceServiceImpl(TouristicPlaceRepository repository, UserRepository userRepository,
-                                     CategoryRepository categoryRepository, PageService pageService) {
+                                     CategoryRepository categoryRepository, PageService pageService,
+                                     TouristicPlaceMapper mapper) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.pageService = pageService;
+        this.mapper = mapper;
     }
 
 
@@ -59,7 +63,7 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
             List<TouristicPlaceCategory> categories = transformCategoriesToTouristicPlaceCategory(touristicPlaceDto, place);
             place.setCategories(categories);
 
-            return Either.right(TouristicPlaceResponseDTO.touristicPlaceToResponseDTO(repository.save(place)));
+            return Either.right(mapper.modelToResponseDto(repository.save(place)));
         } catch (DataIntegrityViolationException e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_CREATE_TOURISTIC_PLACE, e.getMessage())});
@@ -82,9 +86,9 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
                 place.setRegion(placeDTO.getRegion());
                 place.setCategories(this.transformCategoriesToTouristicPlaceCategory(placeDTO, place));
                 place.setEnabled(placeDTO.getEnabled());
-                return Either.right(TouristicPlaceResponseDTO.touristicPlaceToResponseDTO(repository.save(place)));
+                return Either.right(mapper.modelToResponseDto(repository.save(place)));
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, "Error to delete touristic place")});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, "Error to delete touristic place", null)});
             }
         } catch (DataIntegrityViolationException e) {
             log.error(e.getMessage());
@@ -103,7 +107,7 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<TouristicPlace> places = repository.findAll(pageable);
-            return Either.right(places.map(TouristicPlaceResponseDTO::touristicPlaceToResponseDTO));
+            return Either.right(places.map(mapper::modelToResponseDto));
         } catch (Exception e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
@@ -129,10 +133,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
     public Either<ErrorDto[], TouristicPlaceResponseDTO> getById(UUID id) {
         try {
             TouristicPlace place = repository.findById(id).orElse(null);
-            return Either.right(place != null ? TouristicPlaceResponseDTO.touristicPlaceToResponseDTO(place) : null);
+            return Either.right(place != null ? mapper.modelToResponseDto(place) : null);
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID, null)});
         } catch (Exception e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
@@ -144,10 +148,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<TouristicPlace> places = repository.findByNameStartingWithIgnoreCase(email, pageable);
-            return Either.right(places.map(TouristicPlaceResponseDTO::touristicPlaceToResponseDTO));
+            return Either.right(places.map(mapper::modelToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID, null)});
         } catch (Exception e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});
@@ -160,10 +164,10 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<TouristicPlace> places = repository.findByRegion(region, pageable);
-            return Either.right(places.map(TouristicPlaceResponseDTO::touristicPlaceToResponseDTO));
+            return Either.right(places.map(mapper::modelToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID, null)});
         } catch (Exception e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_TOURISTIC_PLACE, e.getMessage())});

@@ -1,5 +1,6 @@
 package com.tourism.service.impl;
 
+import com.tourism.dto.mappers.LodgingOwnerMapper;
 import com.tourism.dto.request.LodgingOwnerRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
@@ -40,16 +41,19 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
     private final PasswordEncryptionService encryptionService;
     private final UserValidation userValidation;
     private final PageService pageService;
+    private final LodgingOwnerMapper mapper;
 
     @Autowired
     public LodgingOwnerServiceImpl(LodgingOwnerRepository repository, UserRepository userRepository, RefreshTokenRepository tokenRepository,
-                                   PasswordEncryptionService encryptionService, UserValidation userValidation, PageService pageService) {
+                                   PasswordEncryptionService encryptionService, UserValidation userValidation, PageService pageService,
+                                   LodgingOwnerMapper mapper) {
         this.repository = repository;
         this.userValidation = userValidation;
         this.tokenRepository = tokenRepository;
         this.encryptionService = encryptionService;
         this.userRepository = userRepository;
         this.pageService = pageService;
+        this.mapper = mapper;
     }
 
     @Override
@@ -64,16 +68,16 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
                         userDto.getLastName(),
                         Role.LODGING_OWNER,
                         true));
-                return Either.right(lodgingOwner.getId() != null ? LodgingOwnerResponseDTO.lodgingOwnerToResponseDto(lodgingOwner) : null);
+                return Either.right(lodgingOwner.getId() != null ? mapper.modelToResponseDto(lodgingOwner) : null);
             } else {
                 return Either.left(validation.getLeft());
             }
         } catch (DataIntegrityViolationException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.CONFLICT, MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_OWNER_NOT_CREATED, e.getMessage())});
         }
     }
 
@@ -82,10 +86,10 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<LodgingOwner> owners = repository.findAll(pageable);
-            return Either.right(owners.map(LodgingOwnerResponseDTO::lodgingOwnerToResponseDto));
+            return Either.right(owners.map(mapper::modelToResponseDto));
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.GENERIC_ERROR, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.GENERIC_ERROR, e.getMessage())});
         }
     }
 
@@ -100,26 +104,26 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
             return Either.right(null);
         } catch (NoSuchElementException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.NULL_ID)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.NULL_ID)});
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_LODGING_OWNER)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_LODGING_OWNER)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_LODGING_OWNER, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_LODGING_OWNER, e.getMessage())});
         }
     }
 
     @Override
     public Either<ErrorDto[], LodgingOwnerResponseDTO> getById(UUID id) {
         try {
-            return Either.right(LodgingOwnerResponseDTO.lodgingOwnerToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
+            return Either.right(mapper.modelToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
         }
     }
 
@@ -128,13 +132,13 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<LodgingOwner> owners = repository.findByEmailStartingWithIgnoreCase(email, pageable);
-            return Either.right(owners.map(LodgingOwnerResponseDTO::lodgingOwnerToResponseDto));
+            return Either.right(owners.map(mapper::modelToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
         }
     }
 
@@ -143,14 +147,13 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<LodgingOwner> owners = repository.findByLastNameStartingWithIgnoreCase(lastName, pageable);
-            return Either.right(owners.map(LodgingOwnerResponseDTO::lodgingOwnerToResponseDto));
+            return Either.right(owners.map(mapper::modelToResponseDto));
         } catch (InvalidDataAccessApiUsageException e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_LAST_NAME)});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_LAST_NAME)});
         } catch (Exception e) {
             log.error(e.getMessage());
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGING_OWNER, e.getMessage())});
         }
     }
-
 }

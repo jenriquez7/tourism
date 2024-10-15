@@ -23,7 +23,7 @@ public class ResponseEntityUtil {
         StandardResponseDto<T> responseDto;
 
         if (responseEither.isLeft() && Arrays.stream(responseEither.getLeft()).findFirst().isPresent()) {
-            status = Arrays.stream(responseEither.getLeft()).findFirst().get().getCode();
+            status = Arrays.stream(responseEither.getLeft()).findFirst().get().code();
             responseDto = ResponseUtil.build(request, responseEither.getLeft());
         } else {
             responseDto = ResponseUtil.build(request, responseEither.get());
@@ -38,7 +38,7 @@ public class ResponseEntityUtil {
         StandardResponseDto<T> responseDto;
 
         if (responseEither.isLeft() && Arrays.stream(responseEither.getLeft()).findFirst().isPresent()) {
-            status = Arrays.stream(responseEither.getLeft()).findFirst().get().getCode();
+            status = Arrays.stream(responseEither.getLeft()).findFirst().get().code();
             responseDto = ResponseUtil.build(request, responseEither.getLeft());
         } else {
             responseDto = ResponseUtil.build(request, responseEither.get());
@@ -64,7 +64,7 @@ public class ResponseEntityUtil {
         StandardResponseDto<T> responseDto;
 
         if (responseEither.isLeft() && Arrays.stream(responseEither.getLeft()).findFirst().isPresent()) {
-            status = Arrays.stream(responseEither.getLeft()).findFirst().get().getCode();
+            status = Arrays.stream(responseEither.getLeft()).findFirst().get().code();
             responseDto = ResponseUtil.build(request, responseEither.getLeft());
         } else {
             var meta = ResponseUtil.createMeta(request);
@@ -83,7 +83,7 @@ public class ResponseEntityUtil {
         StandardResponseDto<T> responseDto;
 
         if (responseEither.isLeft() && Arrays.stream(responseEither.getLeft()).findFirst().isPresent()) {
-            status = Arrays.stream(responseEither.getLeft()).findFirst().get().getCode();
+            status = Arrays.stream(responseEither.getLeft()).findFirst().get().code();
             responseDto = ResponseUtil.build(request, responseEither.getLeft());
         } else {
             responseDto = ResponseUtil.build(request, responseEither.get());
@@ -98,7 +98,7 @@ public class ResponseEntityUtil {
         StandardResponseDto<T> responseDto;
 
         if (responseEither.isLeft() && Arrays.stream(responseEither.getLeft()).findFirst().isPresent()) {
-            status = Arrays.stream(responseEither.getLeft()).findFirst().get().getCode();
+            status = Arrays.stream(responseEither.getLeft()).findFirst().get().code();
             responseDto = ResponseUtil.build(request, responseEither.getLeft());
         } else {
             responseDto = ResponseUtil.build(request, responseEither.get());

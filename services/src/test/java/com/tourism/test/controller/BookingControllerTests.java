@@ -85,12 +85,13 @@ class BookingControllerTests {
     @Test
     @DisplayName("Update Booking")
     void update() {
-        responseDTO.setCheckIn(checkIn.plusDays(5L));
-        responseDTO.setCheckOut(checkOut.plusDays(7L));
+        BookingResponseDTO updated = new BookingResponseDTO(responseDTO.id(), responseDTO.lodgingName(), responseDTO.firstName(),
+                responseDTO.lastName(), checkIn.plusDays(5L), checkOut.plusDays(7L), responseDTO.totalPrice(),
+                responseDTO.lodgingPhone(), responseDTO.lodgingInformation(), responseDTO.state());
 
         User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
         when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.update(updateRequestDTO, user.getId())).thenReturn(Either.right(responseDTO));
+        when(service.update(updateRequestDTO, user.getId())).thenReturn(Either.right(updated));
 
         ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.update(request, updateRequestDTO);
 
@@ -199,10 +200,9 @@ class BookingControllerTests {
         assertInstanceOf(BookingResponseDTO.class, data[0]);
 
         BookingResponseDTO responseDto = (BookingResponseDTO) data[0];
-        assertEquals(responseDTO.getBookingId(), responseDto.getBookingId());
-        assertEquals(responseDTO.getCheckIn(), responseDto.getCheckIn());
-        assertEquals(responseDTO.getLodgingPhone(), responseDto.getLodgingPhone());
-        assertEquals(responseDTO.getFirstName(), responseDto.getFirstName());
+        assertEquals(responseDTO.id(), responseDto.id());
+        assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
+        assertEquals(responseDTO.firstName(), responseDto.firstName());
     }
 
     private void verifyPageBookingResponseDto(ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> response) {
@@ -220,9 +220,9 @@ class BookingControllerTests {
         assertEquals(1, resultPage.getContent().size());
 
         BookingResponseDTO responseDto = resultPage.getContent().getFirst();
-        assertEquals(responseDTO.getBookingId(), responseDto.getBookingId());
-        assertEquals(responseDTO.getCheckIn(), responseDto.getCheckIn());
-        assertEquals(responseDTO.getLodgingPhone(), responseDto.getLodgingPhone());
-        assertEquals(responseDTO.getFirstName(), responseDto.getFirstName());
+        assertEquals(responseDTO.id(), responseDto.id());
+        assertEquals(responseDTO.checkIn(), responseDto.checkIn());
+        assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
+        assertEquals(responseDTO.firstName(), responseDto.firstName());
     }
 }

@@ -45,8 +45,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordNullEmail() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(null, validPassword);
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_EMPTY_EMAIL, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_EMPTY_EMAIL, result.getLeft()[0].message());
     }
 
     @Test
@@ -54,8 +54,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordEmptyEmail() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword("", validPassword);
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_EMPTY_EMAIL, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_EMPTY_EMAIL, result.getLeft()[0].message());
     }
 
     @Test
@@ -63,8 +63,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordInvalidEmailFormat() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword("invalid-email", validPassword);
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_INVALID_EMAIL_FORMAT, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_INVALID_EMAIL_FORMAT, result.getLeft()[0].message());
     }
 
     @Test
@@ -72,8 +72,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordNullPassword() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, null);
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_REQUIRED_PASSWORD, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_REQUIRED_PASSWORD, result.getLeft()[0].message());
     }
 
     @Test
@@ -81,8 +81,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordEmptyPassword() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_REQUIRED_PASSWORD, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_REQUIRED_PASSWORD, result.getLeft()[0].message());
     }
 
     @Test
@@ -90,8 +90,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordShortPassword() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "Short1!");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_PASSWORD_LENGTH, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_PASSWORD_LENGTH, result.getLeft()[0].message());
     }
 
     @Test
@@ -99,8 +99,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordLongPassword() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "ThisPasswordIsWayTooLongAndExceedsTheMaximumAllowedLength123!");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_PASSWORD_LENGTH, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_PASSWORD_LENGTH, result.getLeft()[0].message());
     }
 
     @Test
@@ -108,8 +108,8 @@ class UserValidationTests {
     void testValidateEmailAndPassword_NoUppercaseLetter() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "valid@password1");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_PASSWORD_UPPERCASE, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_PASSWORD_UPPERCASE, result.getLeft()[0].message());
     }
 
     @Test
@@ -117,8 +117,8 @@ class UserValidationTests {
     void testValidateEmailAndPasswordNoLowercaseLetter() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "VALID@PASSWORD1");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_PASSWORD_LOWERCASE, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_PASSWORD_LOWERCASE, result.getLeft()[0].message());
     }
 
     @Test
@@ -126,8 +126,8 @@ class UserValidationTests {
     void testValidateEmailAndPassword_NoDigit() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "Valid@Password");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_PASSWORD_NUMBER, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_PASSWORD_NUMBER, result.getLeft()[0].message());
     }
 
     @Test
@@ -135,7 +135,7 @@ class UserValidationTests {
     void testValidateEmailAndPassword_NoSpecialCharacter() {
         Either<ErrorDto[], Boolean> result = userValidation.validateEmailAndPassword(validEmail, "ValidPassword1");
         assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].getCode());
-        assertEquals(MessageConstants.ERROR_PASSWORD_SPECIAL_CHARACTER, result.getLeft()[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+        assertEquals(MessageConstants.ERROR_PASSWORD_SPECIAL_CHARACTER, result.getLeft()[0].message());
     }
 }
