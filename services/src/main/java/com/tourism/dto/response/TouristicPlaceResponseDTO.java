@@ -2,7 +2,6 @@ package com.tourism.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tourism.model.Region;
-import com.tourism.model.TouristicPlace;
 
 import java.util.List;
 import java.util.UUID;

@@ -1,7 +1,6 @@
 package com.tourism.service.impl;
 
 import com.tourism.dto.mappers.LodgingMapper;
-import com.tourism.dto.mappers.TouristicPlaceMapper;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.LodgingResponseDTO;
