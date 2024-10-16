@@ -1,6 +1,7 @@
 package com.tourism.test.controller;
 
 import com.tourism.controller.LodgingController;
+import com.tourism.dto.request.LodgingRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.LodgingResponseDTO;
 import com.tourism.dto.response.StandardResponseDto;
@@ -51,6 +52,7 @@ class LodgingControllerTests {
     private LodgingController controller;
 
     private Lodging lodging;
+    private LodgingRequestDTO requestDto;
     private LodgingResponseDTO lodgingResponseDTO;
 
     @BeforeEach
@@ -58,6 +60,7 @@ class LodgingControllerTests {
         TouristicPlaceResponseDTO tpResponseDto = new TouristicPlaceResponseDTO(UUID.randomUUID(), "Punta del Este", "Hermoso lugar", Region.EAST, new ArrayList<>(), true);;
         lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), new LodgingOwner(), true);
         lodgingResponseDTO = new LodgingResponseDTO(UUID.randomUUID(),"Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, tpResponseDto, true);
+        requestDto = new LodgingRequestDTO("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 4, 20, 25.0, UUID.randomUUID());
     }
 
     @Test
@@ -65,11 +68,11 @@ class LodgingControllerTests {
     void create() {
         User user = new User(UUID.randomUUID(), "admin@email.com", Role.ADMIN);
         when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.create(lodging, user.getId())).thenReturn(Either.right(lodgingResponseDTO));
-        ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.create(request, lodging);
+        when(service.create(requestDto, user.getId())).thenReturn(Either.right(lodgingResponseDTO));
+        ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.create(request, requestDto);
 
         verifyLodgingResponseDto(response);
-        verify(service, times(1)).create(lodging, user.getId());
+        verify(service, times(1)).create(requestDto, user.getId());
     }
 
     @Test

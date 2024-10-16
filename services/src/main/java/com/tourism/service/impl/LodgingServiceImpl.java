@@ -1,6 +1,7 @@
 package com.tourism.service.impl;
 
 import com.tourism.dto.mappers.LodgingMapper;
+import com.tourism.dto.request.LodgingRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.LodgingResponseDTO;
@@ -11,6 +12,7 @@ import com.tourism.util.MessageConstants;
 import com.tourism.util.PageService;
 import com.tourism.util.validations.BookingValidation;
 import io.vavr.control.Either;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,15 +56,15 @@ public class LodgingServiceImpl implements LodgingService {
 
 
     @Override
-    public Either<ErrorDto[], LodgingResponseDTO> create(Lodging lodging, UUID ownerId) {
+    public Either<ErrorDto[], LodgingResponseDTO> create(LodgingRequestDTO requestDto, UUID ownerId) {
         try {
-            TouristicPlace place = placeRepository.findById(lodging.getTouristicPlace().getId()).orElse(null);
-            LodgingOwner lodgingOwner = ownerRepository.findById(ownerId).orElse(null);
-            lodging.setTouristicPlace(Objects.requireNonNull(place));
-            lodging.setLodgingOwner(Objects.requireNonNull(lodgingOwner));
-            lodging.setEnabled(true);
+            TouristicPlace place = placeRepository.findById(requestDto.touristicPlaceId()).orElseThrow(
+                    () -> new EntityNotFoundException("Touristic Place not found with id: " + requestDto.touristicPlaceId()));
+            LodgingOwner owner = ownerRepository.findById(ownerId).orElseThrow(
+                    () -> new EntityNotFoundException("Lodging Owner not found with id: " + ownerId));
+            Lodging lodging = mapper.requestDtoToModel(requestDto, place, owner, true);
             return Either.right(mapper.modelToResponseDto(repository.save(lodging)));
-        } catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException | EntityNotFoundException e) {
             log.error(e.getMessage());
             return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {

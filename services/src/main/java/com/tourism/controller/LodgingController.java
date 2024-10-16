@@ -2,6 +2,7 @@ package com.tourism.controller;
 
 import com.tourism.configuration.annotation.CommonApiResponses;
 import com.tourism.configuration.annotation.RequiresRoles;
+import com.tourism.dto.request.LodgingRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.StandardResponseDto;
@@ -52,10 +53,11 @@ public class LodgingController {
     @RequiresRoles({Role.LODGING_OWNER})
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> create(HttpServletRequest request,
-                                                                          @RequestBody @Valid Lodging touristicPlaceDto) {
+                                                                          @RequestBody @Valid LodgingRequestDTO lodging) {
         User user = jwtTokenProvider.getUserFromToken(request);
         if (user != null) {
-            return ResponseEntityUtil.buildObject(request, service.create(touristicPlaceDto, user.getId()));
+            log.error(user.getId().toString());
+            return ResponseEntityUtil.buildObject(request, service.create(lodging, user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
                     ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to create lodging. User Not logged")}));

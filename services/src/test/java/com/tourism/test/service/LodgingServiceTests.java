@@ -1,6 +1,7 @@
 package com.tourism.test.service;
 
 import com.tourism.dto.mappers.LodgingMapper;
+import com.tourism.dto.request.LodgingRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.*;
 import com.tourism.model.Role;
@@ -69,7 +70,8 @@ class LodgingServiceTests {
     private LodgingOwner owner;
     private PageableRequest pageableRequest;
     private Pageable pageable;
-    private LodgingResponseDTO responseDTO;
+    private LodgingRequestDTO requestDto;
+    private LodgingResponseDTO responseDto;
     private TouristicPlaceResponseDTO tpResponseDto;
 
     @BeforeEach
@@ -82,7 +84,8 @@ class LodgingServiceTests {
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
         tpResponseDto = new TouristicPlaceResponseDTO(UUID.randomUUID(), place.getName(), place.getDescription(), place.getRegion(), List.of(category), place.getEnabled());
-        responseDTO = new LodgingResponseDTO(UUID.randomUUID(), lodging.getName(), lodging.getDescription(), lodging.getInformation(),
+        requestDto = new LodgingRequestDTO("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 4, 20, 25.0, UUID.randomUUID());
+        responseDto = new LodgingResponseDTO(UUID.randomUUID(), lodging.getName(), lodging.getDescription(), lodging.getInformation(),
                 lodging.getPhone(), lodging.getCapacity(), lodging.getNightPrice(), lodging.getStars(), tpResponseDto,
                 lodging.getEnabled());
     }
@@ -90,12 +93,13 @@ class LodgingServiceTests {
     @Test
     @DisplayName("Create Lodging - Success")
     void createLodgingSuccess() {
-        when(mapper.modelToResponseDto(any(Lodging.class))).thenReturn(responseDTO);
-        when(placeRepository.findById(place.getId())).thenReturn(Optional.of(place));
-        when(ownerRepository.findById(responseDTO.id())).thenReturn(Optional.of(owner));
+        when(mapper.modelToResponseDto(any(Lodging.class))).thenReturn(responseDto);
+        when(mapper.requestDtoToModel(requestDto, place, owner, true)).thenReturn(lodging);
+        when(placeRepository.findById(any(UUID.class))).thenReturn(Optional.of(place));
+        when(ownerRepository.findById(any(UUID.class))).thenReturn(Optional.of(owner));
         when(repository.save(any(Lodging.class))).thenReturn(lodging);
 
-        Either<ErrorDto[], LodgingResponseDTO> result = service.create(lodging, responseDTO.id());
+        Either<ErrorDto[], LodgingResponseDTO> result = service.create(requestDto, responseDto.id());
 
         assertTrue(result.isRight());
         LodgingResponseDTO response = result.get();
@@ -107,8 +111,6 @@ class LodgingServiceTests {
         assertEquals(lodging.getNightPrice(), response.nightPrice());
         assertEquals(lodging.getStars(), response.stars());
 
-        verify(placeRepository).findById(place.getId());
-        verify(ownerRepository).findById(response.id());
         verify(repository).save(any(Lodging.class));
     }
 
@@ -118,12 +120,12 @@ class LodgingServiceTests {
         UUID ownerId = UUID.randomUUID();
         when(placeRepository.findById(place.getId())).thenReturn(Optional.empty());
 
-        Either<ErrorDto[], LodgingResponseDTO> result = service.create(lodging, ownerId);
+        Either<ErrorDto[], LodgingResponseDTO> result = service.create(requestDto, ownerId);
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(HttpStatus.NOT_ACCEPTABLE, errors[0].code());
         assertEquals(MessageConstants.ERROR_LODGING_NOT_CREATED, errors[0].message());
     }
 
@@ -134,12 +136,12 @@ class LodgingServiceTests {
         when(placeRepository.findById(place.getId())).thenReturn(Optional.of(place));
         when(ownerRepository.findById(ownerId)).thenReturn(Optional.empty());
 
-        Either<ErrorDto[], LodgingResponseDTO> result = service.create(lodging, ownerId);
+        Either<ErrorDto[], LodgingResponseDTO> result = service.create(requestDto, ownerId);
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(HttpStatus.NOT_ACCEPTABLE, errors[0].code());
         assertEquals(MessageConstants.ERROR_LODGING_NOT_CREATED, errors[0].message());
     }
 
@@ -151,7 +153,7 @@ class LodgingServiceTests {
         when(ownerRepository.findById(ownerId)).thenReturn(Optional.of(owner));
         when(repository.save(any(Lodging.class))).thenThrow(new DataIntegrityViolationException("Duplicate entry"));
 
-        Either<ErrorDto[], LodgingResponseDTO> result = service.create(lodging, ownerId);
+        Either<ErrorDto[], LodgingResponseDTO> result = service.create(requestDto, ownerId);
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
@@ -171,7 +173,7 @@ class LodgingServiceTests {
         when(bookingDateRepository.findLastBookingDateByLodgingAndState(lodging, BookingState.ACCEPTED)).thenReturn(null);
         when(placeRepository.findById(place.getId())).thenReturn(Optional.of(place));
         when(repository.save(any(Lodging.class))).thenReturn(lodging);
-        when(mapper.modelToResponseDto(any(Lodging.class))).thenReturn(responseDTO);
+        when(mapper.modelToResponseDto(any(Lodging.class))).thenReturn(responseDto);
 
         Either<ErrorDto[], LodgingResponseDTO> result = service.update(lodging, ownerId);
 
@@ -269,7 +271,7 @@ class LodgingServiceTests {
         List<Lodging> lodgingList = Arrays.asList(lodging, new Lodging("Hotel 2", "Descripción 2", "Dirección 2", "+59899123457", 30, 35.0, 3, place, owner, true));
         Page<Lodging> lodgingPage = new PageImpl<>(lodgingList, pageable, lodgingList.size());
 
-        LodgingResponseDTO dto1 = responseDTO;
+        LodgingResponseDTO dto1 = responseDto;
         LodgingResponseDTO dto2 = new LodgingResponseDTO(UUID.randomUUID(),lodgingList.getLast().getName(), lodgingList.getLast().getDescription(), lodgingList.getLast().getInformation(), lodgingList.getLast().getPhone(), lodgingList.getLast().getCapacity(), lodgingList.getLast().getNightPrice(), lodgingList.getLast().getStars(), tpResponseDto, lodgingList.getLast().getEnabled());
         when(mapper.modelToResponseDto(lodgingList.getFirst())).thenReturn(dto1);
         when(mapper.modelToResponseDto(lodgingList.getLast())).thenReturn(dto2);
@@ -330,14 +332,14 @@ class LodgingServiceTests {
     @Test
     @DisplayName("Delete Lodging - Success")
     void deleteLodgingSuccess() {
-        when(repository.findById(responseDTO.id())).thenReturn(Optional.of(lodging));
+        when(repository.findById(responseDto.id())).thenReturn(Optional.of(lodging));
         doNothing().when(repository).delete(lodging);
 
-        Either<ErrorDto[], Lodging> result = service.delete(responseDTO.id());
+        Either<ErrorDto[], Lodging> result = service.delete(responseDto.id());
 
         assertTrue(result.isRight());
         assertNull(result.get());
-        verify(repository).findById(responseDTO.id());
+        verify(repository).findById(responseDto.id());
         verify(repository).delete(lodging);
     }
 
@@ -363,10 +365,10 @@ class LodgingServiceTests {
     @Test
     @DisplayName("Get Lodging By Id - Success")
     void getLodgingByIdSuccess() {
-        when(repository.findById(responseDTO.id())).thenReturn(Optional.of(lodging));
-        when(mapper.modelToResponseDto(any(Lodging.class))).thenReturn(responseDTO);
+        when(repository.findById(responseDto.id())).thenReturn(Optional.of(lodging));
+        when(mapper.modelToResponseDto(any(Lodging.class))).thenReturn(responseDto);
 
-        Either<ErrorDto[], LodgingResponseDTO> result = service.getById(responseDTO.id());
+        Either<ErrorDto[], LodgingResponseDTO> result = service.getById(responseDto.id());
 
         assertTrue(result.isRight());
         LodgingResponseDTO responseDTO = result.get();
@@ -409,7 +411,7 @@ class LodgingServiceTests {
         UUID placeId = UUID.randomUUID();
         List<Lodging> lodgingList = Arrays.asList(lodging, new Lodging("Hotel 2", "Descripción 2", "Dirección 2", "+59899123457", 30, 35.0, 3, place, owner, true));
         Page<Lodging> lodgingPage = new PageImpl<>(lodgingList, pageable, lodgingList.size());
-        LodgingResponseDTO dto1 = responseDTO;
+        LodgingResponseDTO dto1 = responseDto;
         LodgingResponseDTO dto2 = new LodgingResponseDTO(UUID.randomUUID(),lodgingList.getLast().getName(), lodgingList.getLast().getDescription(), lodgingList.getLast().getInformation(), lodgingList.getLast().getPhone(), lodgingList.getLast().getCapacity(), lodgingList.getLast().getNightPrice(), lodgingList.getLast().getStars(), tpResponseDto, lodgingList.getLast().getEnabled());
 
         when(mapper.modelToResponseDto(lodgingList.getFirst())).thenReturn(dto1);
