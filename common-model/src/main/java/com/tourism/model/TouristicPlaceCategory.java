@@ -3,15 +3,13 @@ package com.tourism.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 @Data
 @RequiredArgsConstructor
 @NoArgsConstructor
 @Entity
+@AllArgsConstructor
 @Table(name = "touristic_place_categories", schema = "public")
 public class TouristicPlaceCategory {
 

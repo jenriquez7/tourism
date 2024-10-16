@@ -60,7 +60,7 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
                     true
             );
 
-            List<TouristicPlaceCategory> categories = transformCategoriesToTouristicPlaceCategory(touristicPlaceDto, place);
+            List<TouristicPlaceCategory> categories = this.transformCategoriesToTouristicPlaceCategory(touristicPlaceDto, place);
             place.setCategories(categories);
 
             return Either.right(mapper.modelToResponseDto(repository.save(place)));
@@ -176,18 +176,13 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
 
     private List<TouristicPlaceCategory> transformCategoriesToTouristicPlaceCategory(TouristicPlaceRequestDTO touristicPlaceDto, TouristicPlace place) {
         List<TouristicPlaceCategory> categories = new ArrayList<>();
-        for (Category categoryDto : touristicPlaceDto.getCategories()) {
+        touristicPlaceDto.getCategories().forEach(c -> {
+            Category category = categoryRepository.findById(c.getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + c.getId()));
+            TouristicPlaceCategoryId id = new TouristicPlaceCategoryId(place.getId(), c.getId());
+            categories.add(new TouristicPlaceCategory(id, place, category));
+        });
 
-            Category category = categoryRepository.findById(categoryDto.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryDto.getId()));
-
-            TouristicPlaceCategoryId id = new TouristicPlaceCategoryId(place.getId(), categoryDto.getId());
-            TouristicPlaceCategory touristicPlaceCategory = new TouristicPlaceCategory();
-            touristicPlaceCategory.setId(id);
-            touristicPlaceCategory.setTouristicPlace(place);
-            touristicPlaceCategory.setCategory(category);
-            categories.add(touristicPlaceCategory);
-        }
         return categories;
     }
 }
