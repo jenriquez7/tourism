@@ -1,0 +1,106 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_PREFIX: tourism
+  IMAGE_TAG: ${{ github.sha }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build common-model
+        run: |
+          cd common-model
+          mvn clean install -DskipTests
+
+      - name: Build and push services
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          cd services
+          mvn clean package -DskipTests
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG -f ../Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            
+            cat << EOF > docker-compose.prod.yml
+            version: '3.8'
+            
+            services:
+              services:
+                image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_PREFIX }}-services:${{ env.IMAGE_TAG }}
+                ports:
+                  - "8080:8080"
+                environment:
+                  - SPRING_PROFILES_ACTIVE=prod
+                  - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/tourism?characterEncoding=UTF-8
+                  - SPRING_DATASOURCE_USERNAME=postgres
+                  - SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}
+                  - ENCRYPT_PASSWORD=${{ secrets.ENCRYPT_PASSWORD }}
+                  - SESSION_CLIENT_SECRET=${{ secrets.SESSION_CLIENT_SECRET }}
+                restart: always
+                depends_on:
+                  db:
+                    condition: service_healthy
+            
+              db:
+                image: postgres:16
+                environment:
+                  - POSTGRES_DB=tourism
+                  - POSTGRES_USER=postgres
+                  - POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+                volumes:
+                  - postgres_data:/var/lib/postgresql/data
+                healthcheck:
+                  test: ["CMD-SHELL", "pg_isready -U postgres"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 5
+                restart: always
+            
+            volumes:
+              postgres_data:
+            EOF
+            
+            docker-compose -f docker-compose.prod.yml down
+            docker-compose -f docker-compose.prod.yml up -d
+            docker image prune -af
