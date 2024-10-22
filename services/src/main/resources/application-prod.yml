@@ -1,0 +1,18 @@
+encrypt:
+  password: ${ENCRYPT_PASSWORD}
+
+session:
+  client-secret: ${SESSION_CLIENT_SECRET}
+  access-token-expiration-time: 15
+  refresh-token-expiration-time: 7
+
+logging:
+  level:
+    root: INFO
+    com.yourpackage: INFO
+    org.hibernate: INFO
+    org.springframework: INFO
+  file:
+    name: /var/log/tourism-app.log
+    max-size: 10MB
+    max-history: 10
