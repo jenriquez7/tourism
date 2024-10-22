@@ -9,7 +9,7 @@ session:
 logging:
   level:
     root: INFO
-    com.yourpackage: INFO
+    com.tourism: INFO
     org.hibernate: INFO
     org.springframework: INFO
   file:
