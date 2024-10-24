@@ -6,21 +6,14 @@ on:
       - develop
   workflow_dispatch:
 
-env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY_PREFIX: tourism
-  IMAGE_TAG: ${{ github.sha }}
-
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -39,18 +32,12 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build common-model
-        run: |
-          cd common-model
-          mvn clean install -DskipTests
-
-      - name: Build and push services
+      - name: Build and push Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd services
-          mvn clean package -DskipTests
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG -f ../Dockerfile .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG
 
       - name: Deploy to EC2
@@ -60,29 +47,19 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Create app directory if it doesn't exist
             mkdir -p ~/tourism-app
             cd ~/tourism-app
             
-            # Copy Dockerfile content
-            cat << 'EOF' > Dockerfile
-            FROM eclipse-temurin:21-jre-jammy
-            WORKDIR /app
-            COPY services/target/*.jar app.jar
-            ENV SPRING_PROFILES_ACTIVE=prod
-            EXPOSE 8080
-            ENTRYPOINT ["java", "-jar", "app.jar"]
-            EOF
-            
-            # Login to ECR
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
-            # Create docker-compose.yml
-            cat << EOF > docker-compose.prod.yml
-            # [El resto de tu configuración docker-compose actual]
-            EOF
+            # Pull and run the new image
+            docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY_PREFIX-services:${{ github.sha }}
+            docker stop tourism-service || true
+            docker rm tourism-service || true
+            docker run -d \
+              --name tourism-service \
+              -p 8080:8080 \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY_PREFIX-services:${{ github.sha }}
             
-            # Deploy
-            docker-compose -f docker-compose.prod.yml down
-            docker-compose -f docker-compose.prod.yml up -d
             docker image prune -af
