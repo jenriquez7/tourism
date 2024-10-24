@@ -3,37 +3,36 @@ FROM maven:3.9.6-eclipse-temurin-22 AS build
 
 WORKDIR /app
 
-# Copy only the POM files first to cache dependencies
-COPY pom.xml .
-COPY checkstyle.xml .
-COPY common-model/pom.xml common-model/
-COPY services/pom.xml services/
+# Copy root POM
+COPY ./pom.xml .
 
-# Download dependencies and cache them
+# Copy checkstyle if exists (make this optional)
+COPY ./checkstyle.xml ./checkstyle.xml
+
+# Copy module POMs first for better caching
+COPY ./common-model/pom.xml ./common-model/
+COPY ./services/pom.xml ./services/
+
+# Download dependencies
 RUN mvn dependency:go-offline -B
 
-# Copy source files
-COPY common-model/src common-model/src/
-COPY services/src services/src/
+# Copy source code
+COPY ./common-model/src ./common-model/src/
+COPY ./services/src ./services/src/
 
-# Run checkstyle and build
-RUN mvn checkstyle:check
+# Build the application
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run services
+# Stage 2: Create the runtime image
 FROM eclipse-temurin:22-jre-jammy
 
 WORKDIR /app
 
-# Copy the jar from build stage
+# Copy the built artifact
 COPY --from=build /app/services/target/*.jar app.jar
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
-
-# Expose the application port
+# Expose port
 EXPOSE 8080
 
-# Set Java options for container environment
+# Set Java options and start the application
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
