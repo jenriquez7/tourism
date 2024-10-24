@@ -8,12 +8,8 @@ on:
 
 env:
   AWS_REGION: us-east-2
-  ECR_REPOSITORY_PREFIX: tourism
-  IMAGE_TAG: ${{ github.sha }}
-
-permissions:
-  id-token: write
-  contents: read
+  ECR_REPOSITORY: tourism-app
+  EC2_APP_NAME: tourism-app-server
 
 jobs:
   build-and-deploy:
@@ -46,8 +42,8 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX-services:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
@@ -55,20 +51,22 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,AWS_REGION
           script: |
-            mkdir -p ~/tourism-app
-            cd ~/tourism-app
+            mkdir -p ~/${{ env.EC2_APP_NAME }}
+            cd ~/${{ env.EC2_APP_NAME }}
             
+            # Login to ECR
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
-            # Pull and run the new image
-            docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY_PREFIX-services:${{ github.sha }}
-            docker stop tourism-service || true
-            docker rm tourism-service || true
+            # Pull y ejecutar la nueva imagen
+            docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            docker stop ${{ env.EC2_APP_NAME }} || true
+            docker rm ${{ env.EC2_APP_NAME }} || true
             docker run -d \
-              --name tourism-service \
+              --name ${{ env.EC2_APP_NAME }} \
               -p 8080:8080 \
               -e SPRING_PROFILES_ACTIVE=prod \
-              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY_PREFIX-services:${{ github.sha }}
+              ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             
             docker image prune -af
