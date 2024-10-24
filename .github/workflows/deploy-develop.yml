@@ -6,6 +6,15 @@ on:
       - develop
   workflow_dispatch:
 
+env:
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY_PREFIX: tourism
+  IMAGE_TAG: ${{ github.sha }}
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
