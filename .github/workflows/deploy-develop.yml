@@ -25,7 +25,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '22'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Configure AWS credentials
@@ -60,47 +60,29 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            # Create app directory if it doesn't exist
+            mkdir -p ~/tourism-app
+            cd ~/tourism-app
             
-            cat << EOF > docker-compose.prod.yml
-            version: '3.8'
-            
-            services:
-              services:
-                image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_PREFIX }}-services:${{ env.IMAGE_TAG }}
-                ports:
-                  - "8080:8080"
-                environment:
-                  - SPRING_PROFILES_ACTIVE=prod
-                  - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/tourism?characterEncoding=UTF-8
-                  - SPRING_DATASOURCE_USERNAME=postgres
-                  - SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}
-                  - ENCRYPT_PASSWORD=${{ secrets.ENCRYPT_PASSWORD }}
-                  - SESSION_CLIENT_SECRET=${{ secrets.SESSION_CLIENT_SECRET }}
-                restart: always
-                depends_on:
-                  db:
-                    condition: service_healthy
-            
-              db:
-                image: postgres:16
-                environment:
-                  - POSTGRES_DB=tourism
-                  - POSTGRES_USER=postgres
-                  - POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
-                volumes:
-                  - postgres_data:/var/lib/postgresql/data
-                healthcheck:
-                  test: ["CMD-SHELL", "pg_isready -U postgres"]
-                  interval: 10s
-                  timeout: 5s
-                  retries: 5
-                restart: always
-            
-            volumes:
-              postgres_data:
+            # Copy Dockerfile content
+            cat << 'EOF' > Dockerfile
+            FROM eclipse-temurin:21-jre-jammy
+            WORKDIR /app
+            COPY services/target/*.jar app.jar
+            ENV SPRING_PROFILES_ACTIVE=prod
+            EXPOSE 8080
+            ENTRYPOINT ["java", "-jar", "app.jar"]
             EOF
             
+            # Login to ECR
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            
+            # Create docker-compose.yml
+            cat << EOF > docker-compose.prod.yml
+            # [El resto de tu configuración docker-compose actual]
+            EOF
+            
+            # Deploy
             docker-compose -f docker-compose.prod.yml down
             docker-compose -f docker-compose.prod.yml up -d
             docker image prune -af
