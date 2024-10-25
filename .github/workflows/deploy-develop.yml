@@ -67,6 +67,13 @@ jobs:
               --name ${{ env.EC2_APP_NAME }} \
               -p 8080:8080 \
               -e SPRING_PROFILES_ACTIVE=prod \
+              -e RDS_HOSTNAME=${{ secrets.RDS_HOSTNAME }} \
+              -e RDS_PORT=${{ secrets.RDS_PORT }} \
+              -e RDS_DB_NAME=${{ secrets.RDS_DB_NAME }} \
+              -e RDS_USERNAME=${{ secrets.RDS_USERNAME }} \
+              -e RDS_PASSWORD=${{ secrets.RDS_PASSWORD }} \
+              -e ENCRYPT_PASSWORD=${{ secrets.ENCRYPT_PASSWORD }} \
+              -e SESSION_CLIENT_SECRET=${{ secrets.SESSION_CLIENT_SECRET }} \
               ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             
             docker image prune -af
