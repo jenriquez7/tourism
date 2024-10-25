@@ -19,7 +19,7 @@ spring:
     password: india
 
 encrypt:
-  password: SHDi3ur9adaojwSPOR#DJPj3orJSDIEWAJRI3jSD3r03jfs0#R)Ojedfjw0
+  password: SHDi3ur9adaojwSPORxDJPj3orJSDIEWAJRI3jSD3r03jfs0xROjedfjw0
 
 session:
   client-secret: b5aLx87-W2AekkMnvtPAz2ejcydyLDSwfUmILlxb0KegHksAP5eqf5k54WUzd89u
