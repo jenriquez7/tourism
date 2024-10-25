@@ -5,10 +5,14 @@ spring:
     username: ${RDS_USERNAME}
     password: ${RDS_PASSWORD}
   jpa:
-    database: postgresql
-    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
 
 encrypt:
   password: ${ENCRYPT_PASSWORD}
@@ -22,7 +26,9 @@ logging:
   level:
     root: INFO
     com.tourism: INFO
-    org.hibernate: INFO
+    org.hibernate: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
     org.springframework: INFO
   file:
     name: /var/log/tourism-app.log
