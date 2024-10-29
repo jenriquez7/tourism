@@ -1,28 +1,22 @@
 package com.tourism.infrastructure;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.jasypt.util.text.BasicTextEncryptor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PasswordEncryptionService {
 
-    @Value("${encrypt.password}")
-    private String encryptionPassword;
+    private final PasswordEncoder passwordEncoder;
+
+    public PasswordEncryptionService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public String encryptPassword(String password) {
-        BasicTextEncryptor encryptor = new BasicTextEncryptor();
-        encryptor.setPassword(encryptionPassword);
-        return encryptor.encrypt(password);
+        return passwordEncoder.encode(password);
     }
 
-    public String decryptPassword(String encryptedPassword) {
-        BasicTextEncryptor encryptor = new BasicTextEncryptor();
-        encryptor.setPassword(encryptionPassword);
-        return encryptor.decrypt(encryptedPassword);
-    }
-
-    public boolean checkPassword(String input, String password) {
-        return input.equals(this.decryptPassword(password));
+    public boolean checkPassword(String rawPassword, String encodedPassword) {
+        return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 }
