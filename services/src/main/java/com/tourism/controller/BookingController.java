@@ -54,8 +54,7 @@ public class BookingController {
     @CommonApiResponses
     @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> create(HttpServletRequest request,
-                                                                          @RequestBody @Valid BookingRequestDTO booking) {
+    public ResponseEntity<StandardResponseDto<String>> create(HttpServletRequest request, @RequestBody @Valid BookingRequestDTO booking) {
         User user = jwtTokenProvider.getUserFromToken(request);
         if (user != null) {
             return ResponseEntityUtil.buildObject(request, service.create(booking, user.getId()));
@@ -70,7 +69,7 @@ public class BookingController {
     @CommonApiResponses
     @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> update(HttpServletRequest request, @RequestBody BookingUpdateRequestDTO bookingDto) {
+    public ResponseEntity<StandardResponseDto<String>> update(HttpServletRequest request, @RequestBody BookingUpdateRequestDTO bookingDto) {
         User user = jwtTokenProvider.getUserFromToken(request);
         if (user != null) {
             return ResponseEntityUtil.buildObject(request, service.update(bookingDto, user.getId()));

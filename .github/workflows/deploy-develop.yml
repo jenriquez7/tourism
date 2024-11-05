@@ -10,6 +10,7 @@ env:
   AWS_REGION: us-east-2
   ECR_REPOSITORY: tourism-app
   EC2_APP_NAME: tourism-app-server
+  AWS_SQS_QUEUE_NAME: bookings-prod
 
 jobs:
   build-and-deploy:
@@ -67,6 +68,10 @@ jobs:
               --name ${{ env.EC2_APP_NAME }} \
               -p 8080:8080 \
               -e SPRING_PROFILES_ACTIVE=prod \
+              -e AWS_REGION=${{ env.AWS_REGION }} \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -e AWS_SQS_QUEUE_URL=${{ secrets.AWS_SQS_QUEUE_URL }} \
               -e RDS_HOSTNAME=${{ secrets.RDS_HOSTNAME }} \
               -e RDS_PORT=${{ secrets.RDS_PORT }} \
               -e RDS_DB_NAME=${{ secrets.RDS_DB_NAME }} \

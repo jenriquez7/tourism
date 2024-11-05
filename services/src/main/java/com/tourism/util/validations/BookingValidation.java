@@ -38,17 +38,13 @@ public class BookingValidation {
         } else if (lodging == null) {
             errors.add(ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_LODGING_NOT_FOUND));
         } else {
-            if (dateValidation.checkOutBeforeCheckIn(bookingDTO.getCheckIn(), bookingDTO.getCheckOut())) {
+            if (dateValidation.checkOutBeforeCheckIn(bookingDTO.checkIn(), bookingDTO.checkOut())) {
                 errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CHECK_IN_AFTER_CHECKOUT));
             }
-            if (dateValidation.checkInBeforeToday(bookingDTO.getCheckIn())) {
+            if (dateValidation.checkInBeforeToday(bookingDTO.checkIn())) {
                 errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_CHECK_IN_IN_THE_PAST));
             }
-            if (invalidLodgingCapacityVsBookings(bookingDTO.getAdults(), bookingDTO.getChildren(), bookingDTO.getBabies(),
-                    bookingDTO.getCheckIn(), bookingDTO.getCheckOut(), lodging)) {
-                errors.add(ErrorDto.of(HttpStatus.UNPROCESSABLE_ENTITY, MessageConstants.ERROR_ENOUGH_CAPACITY));
-            }
-            if (bookingDTO.getAdults() <= 0) {
+            if (bookingDTO.adults() <= 0) {
                 errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_WITHOUT_ADULT));
             }
         }
@@ -92,10 +88,6 @@ public class BookingValidation {
             default -> {
                 return Either.right(true);
             }
-        }
-        if (this.invalidLodgingCapacityVsBookings(booking.getAdults(), booking.getChildren(), booking.getBabies(),
-                booking.getCheckIn(), booking.getCheckOut(), booking.getLodging())) {
-            errors.add(ErrorDto.of(HttpStatus.UNPROCESSABLE_ENTITY, MessageConstants.ERROR_ENOUGH_CAPACITY));
         }
         if (booking.getAdults() <= 0) {
             errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_WITHOUT_ADULT));

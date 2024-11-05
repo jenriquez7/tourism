@@ -45,11 +45,13 @@ class BookingValidationTests {
     private Lodging lodging;
     private LodgingOwner owner;
     private Booking booking;
+    private LocalDate checkIn;
+    private LocalDate checkOut;
 
     @BeforeEach
     void setUp() {
-        LocalDate checkIn = LocalDate.now().plusDays(1);
-        LocalDate checkOut = LocalDate.now().plusDays(3);
+        checkIn = LocalDate.now().plusDays(1);
+        checkOut = LocalDate.now().plusDays(3);
         tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
         owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
         owner.setId(UUID.randomUUID());
@@ -116,39 +118,11 @@ class BookingValidationTests {
     }
 
     @Test
-    @DisplayName("Validate Booking - Invalid Lodging Capacity")
-    void testInvalidLodgingCapacity() {
-        List<LocalDate> mockDates = Arrays.asList(
-                LocalDate.of(2024, 7, 1),
-                LocalDate.of(2024, 7, 2),
-                LocalDate.of(2024, 7, 3)
-        );
-        when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
-
-        BookingDate mockBookingDate = new BookingDate();
-        Booking mockBooking = new Booking();
-        mockBooking.setAdults(2);
-        mockBooking.setChildren(1);
-        mockBooking.setBabies(1);
-        mockBookingDate.setBooking(mockBooking);
-        List<BookingDate> mockBookingDates = Collections.singletonList(mockBookingDate);
-        when(dateRepository.findBookingDatesByLodgingAndStateAndDateBetweenCheckInAndCheckOutOrderByCheckInAsc(
-                any(), any(), eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
-        lodging.setCapacity(5);
-
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
-
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_ENOUGH_CAPACITY, result.getLeft()[0].message());
-    }
-
-    @Test
     @DisplayName("Validate Booking - Booking Without Adult")
     void testBookingWithoutAdult() {
-        bookingDto.setAdults(0);
+        BookingRequestDTO bookingDtoTest = new BookingRequestDTO(checkIn, checkOut, lodging, 0,1,1);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
+        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDtoTest, tourist, lodging);
 
         assertTrue(result.isLeft());
         assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
@@ -160,9 +134,9 @@ class BookingValidationTests {
     void testMultipleErrors() {
         when(dateValidation.checkOutBeforeCheckIn(any(), any())).thenReturn(true);
         when(dateValidation.checkInBeforeToday(any())).thenReturn(true);
-        bookingDto.setAdults(0);
+        BookingRequestDTO bookingDtoTest = new BookingRequestDTO(checkIn, checkOut, lodging, 0,1,1);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
+        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDtoTest, tourist, lodging);
 
         assertTrue(result.isLeft());
         assertEquals(3, result.getLeft().length);
@@ -177,7 +151,7 @@ class BookingValidationTests {
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)
         );
-        when(dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut())).thenReturn(mockDates);
+        when(dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut())).thenReturn(mockDates);
 
         BookingDate mockBookingDate = new BookingDate();
         Booking mockBooking = new Booking();
@@ -191,7 +165,7 @@ class BookingValidationTests {
                 eq(lodging), any(), eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
 
         boolean result = bookingValidation.invalidLodgingCapacityVsBookings(2, 1, 0,
-                bookingDto.getCheckIn(), bookingDto.getCheckOut(), lodging);
+                bookingDto.checkIn(), bookingDto.checkOut(), lodging);
 
         assertTrue(result);
     }
@@ -205,7 +179,7 @@ class BookingValidationTests {
                 LocalDate.of(2024, 7, 1),
                 LocalDate.of(2024, 7, 2)
         );
-        when(dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut())).thenReturn(mockDates);
+        when(dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut())).thenReturn(mockDates);
 
         BookingDate mockBookingDate = new BookingDate();
         Booking mockBooking = new Booking();
@@ -219,7 +193,7 @@ class BookingValidationTests {
                 eq(lodging), any(), eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
 
         boolean result = bookingValidation.invalidLodgingCapacityVsBookings(2, 1, 0,
-                bookingDto.getCheckIn(), bookingDto.getCheckOut(), lodging);
+                bookingDto.checkIn(), bookingDto.checkOut(), lodging);
 
         assertFalse(result);
     }
@@ -307,24 +281,6 @@ class BookingValidationTests {
 
         assertTrue(result.isRight());
         assertTrue(result.get());
-    }
-
-    @Test
-    @DisplayName("Valid Change State - Invalid Capacity")
-    void testValidChangeStateInvalidCapacity() {
-        List<LocalDate> mockDates = Arrays.asList(
-                bookingDto.getCheckIn(),
-                bookingDto.getCheckIn().plusDays(1)
-        );
-        booking.setState(BookingState.CREATED);
-        booking.setAdults(30);
-        when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
-
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING, owner.getId());
-
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_ENOUGH_CAPACITY, result.getLeft()[0].message());
     }
 
     @Test

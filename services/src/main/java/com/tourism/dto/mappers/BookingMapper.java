@@ -1,5 +1,7 @@
 package com.tourism.dto.mappers;
 
+import com.tourism.dto.request.BookingRequestDTO;
+import com.tourism.dto.request.BookingUpdateRequestDTO;
 import com.tourism.dto.response.BookingResponseDTO;
 import com.tourism.model.Booking;
 import com.tourism.model.Lodging;
@@ -16,6 +18,9 @@ public interface BookingMapper {
     @Mapping(target = "lodgingPhone", source = "lodging.phone")
     @Mapping(target = "lodgingInformation", source = "lodging.information")
     BookingResponseDTO modelToResponseDTO(Booking booking);
+
+    BookingRequestDTO updateToRequest(BookingUpdateRequestDTO updateRequestDTO, Lodging lodging, Integer adults,
+                                      Integer children, Integer babies);
 
     default String map(Lodging lodging) {
         return lodging != null ? lodging.getName() : null;
