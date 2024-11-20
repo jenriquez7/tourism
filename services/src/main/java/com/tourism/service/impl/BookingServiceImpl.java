@@ -10,6 +10,7 @@ import com.tourism.dto.response.ErrorDto;
 import com.tourism.model.*;
 import com.tourism.observer.BookingObserver;
 import com.tourism.repository.*;
+import com.tourism.service.BookingQueueService;
 import com.tourism.service.BookingService;
 import com.tourism.util.validations.DateValidation;
 import com.tourism.util.MessageConstants;
@@ -20,6 +21,7 @@ import io.vavr.control.Either;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +30,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -42,7 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingDateRepository dateRepository;
     private final PageService pageService;
     private final PricingService pricingService;
-    private final BookingQueueServiceImpl queueService;
+    private final BookingQueueService queueService;
     private final BookingMapper mapper;
 
     private final List<BookingObserver> observers = new ArrayList<>();
@@ -52,7 +53,8 @@ public class BookingServiceImpl implements BookingService {
     public BookingServiceImpl(BookingRepository repository, TouristRepository touristRepository,
                               LodgingRepository lodgingRepository, BookingValidation bookingValidation,
                               DateValidation dateValidation, BookingDateRepository dateRepository, PageService pageService,
-                              PricingService pricingService, BookingQueueServiceImpl queueService, BookingMapper mapper) {
+                              PricingService pricingService, BookingMapper mapper,
+                              @Qualifier("bookingQueueServiceKafkaImpl") BookingQueueService queueService) {
         this.repository = repository;
         this.touristRepository = touristRepository;
         this.lodgingRepository = lodgingRepository;

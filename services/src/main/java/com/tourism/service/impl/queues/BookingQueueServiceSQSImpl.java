@@ -1,4 +1,4 @@
-package com.tourism.service.impl;
+package com.tourism.service.impl.queues;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tourism.dto.request.BookingMessage;
 import com.tourism.dto.request.BookingRequestDTO;
+import com.tourism.service.BookingQueueService;
 import com.tourism.service.BookingService;
 import com.tourism.util.MessageConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
-public class BookingQueueServiceImpl {
+public class BookingQueueServiceSQSImpl implements BookingQueueService {
 
     @Value("${aws.sqs.queue.url}")
     private String queueUrl;
@@ -29,7 +30,7 @@ public class BookingQueueServiceImpl {
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public BookingQueueServiceImpl(AmazonSQS sqsClient, BookingService bookingService, ObjectMapper objectMapper) {
+    public BookingQueueServiceSQSImpl(AmazonSQS sqsClient, BookingService bookingService, ObjectMapper objectMapper) {
         this.sqsClient = sqsClient;
         this.bookingService = bookingService;
         this.objectMapper = objectMapper;
