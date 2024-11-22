@@ -10,7 +10,7 @@ import com.tourism.dto.response.ErrorDto;
 import com.tourism.model.*;
 import com.tourism.observer.BookingObserver;
 import com.tourism.repository.*;
-import com.tourism.service.BookingQueueService;
+import com.tourism.service.BookingSendingQueueService;
 import com.tourism.service.BookingService;
 import com.tourism.util.validations.DateValidation;
 import com.tourism.util.MessageConstants;
@@ -43,7 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingDateRepository dateRepository;
     private final PageService pageService;
     private final PricingService pricingService;
-    private final BookingQueueService queueService;
+    private final BookingSendingQueueService queueSendingService;
     private final BookingMapper mapper;
 
     private final List<BookingObserver> observers = new ArrayList<>();
@@ -54,7 +54,7 @@ public class BookingServiceImpl implements BookingService {
                               LodgingRepository lodgingRepository, BookingValidation bookingValidation,
                               DateValidation dateValidation, BookingDateRepository dateRepository, PageService pageService,
                               PricingService pricingService, BookingMapper mapper,
-                              @Qualifier("bookingQueueServiceKafkaImpl") BookingQueueService queueService) {
+                              @Qualifier("bookingQueueServiceKafkaImpl") BookingSendingQueueService queueSendingService) {
         this.repository = repository;
         this.touristRepository = touristRepository;
         this.lodgingRepository = lodgingRepository;
@@ -63,7 +63,7 @@ public class BookingServiceImpl implements BookingService {
         this.dateRepository = dateRepository;
         this.pageService = pageService;
         this.pricingService = pricingService;
-        this.queueService = queueService;
+        this.queueSendingService = queueSendingService;
         this.mapper = mapper;
     }
 
@@ -76,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
             Either<ErrorDto[], Boolean> validation = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
             if (validation.isRight()) {
-                queueService.sendMessage(bookingDto, touristId);
+                queueSendingService.sendMessage(bookingDto, touristId);
                 return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
             } else {
                 return Either.left(validation.getLeft());
@@ -121,7 +121,7 @@ public class BookingServiceImpl implements BookingService {
                 Either<ErrorDto[], Boolean> validation = bookingValidation.validateBooking(bookingRequest, tourist, lodging);
                 if (validation.isRight()) {
                     dateRepository.deleteByBooking(booking);
-                    queueService.sendMessage(bookingRequest, touristId);
+                    queueSendingService.sendMessage(bookingRequest, touristId);
                     return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
                 } else {
                     return Either.left(validation.getLeft());

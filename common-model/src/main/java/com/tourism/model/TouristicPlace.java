@@ -38,7 +38,10 @@ public class TouristicPlace {
     @Enumerated(EnumType.STRING)
     private Region region;
 
-    @OneToMany(mappedBy = "touristicPlace", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "touristicPlace",
+                fetch = FetchType.LAZY,
+                cascade = CascadeType.ALL,
+                orphanRemoval = true)
     @ToString.Exclude
     private List<TouristicPlaceCategory> categories;
 

@@ -4,7 +4,6 @@ import com.tourism.dto.request.BookingRequestDTO;
 
 import java.util.UUID;
 
-public interface BookingQueueService {
+public interface BookingSendingQueueService {
     void sendMessage(BookingRequestDTO bookingDto, UUID touristId);
-    void receiveMessage(String messageBody);
 }

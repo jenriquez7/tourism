@@ -4,35 +4,31 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tourism.dto.request.BookingMessage;
 import com.tourism.dto.request.BookingRequestDTO;
-import com.tourism.service.BookingQueueService;
-import com.tourism.service.BookingService;
+import com.tourism.service.BookingSendingQueueService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-@Service
-@Slf4j
+@Service("bookingQueueServiceKafkaImpl")
 @Primary
-public class BookingQueueServiceKafkaImpl implements BookingQueueService {
+@Slf4j
+public class BookingSendingQueueServiceKafkaImpl implements BookingSendingQueueService {
 
-    @Value("${kafka.topic.booking}")
+    @Value("${spring.kafka.topic.booking}")
     private String bookingTopic;
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-    private final BookingService bookingService;
 
     @Autowired
-    public BookingQueueServiceKafkaImpl(KafkaTemplate<String, String> kafkaTemplate, BookingService bookingService, ObjectMapper objectMapper) {
+    public BookingSendingQueueServiceKafkaImpl(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
         this.kafkaTemplate = kafkaTemplate;
-        this.bookingService = bookingService;
         this.objectMapper = objectMapper;
     }
 
@@ -51,17 +47,5 @@ public class BookingQueueServiceKafkaImpl implements BookingQueueService {
             log.error("Error sending message to Kafka topic [{}]: {}", bookingTopic, throwable.getMessage());
             return null;
         });
-    }
-
-    @KafkaListener(topics = "${kafka.topic.booking}", groupId = "${spring.kafka.consumer.group-id}")
-    @Override
-    public void receiveMessage(String messageBody) {
-        try {
-            BookingMessage message = objectMapper.readValue(messageBody, BookingMessage.class);
-            bookingService.processBooking(message);
-            log.info("Message processed from Kafka topic [{}]: {}", bookingTopic, message);
-        } catch (JsonProcessingException e) {
-            log.error("Error deserializing booking message", e);
-        }
     }
 }

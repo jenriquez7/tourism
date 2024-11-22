@@ -15,7 +15,7 @@ import com.tourism.repository.BookingDateRepository;
 import com.tourism.repository.BookingRepository;
 import com.tourism.repository.LodgingRepository;
 import com.tourism.repository.TouristRepository;
-import com.tourism.service.impl.queues.BookingQueueServiceSQSImpl;
+import com.tourism.service.BookingSendingQueueService;
 import com.tourism.service.impl.BookingServiceImpl;
 import com.tourism.util.MessageConstants;
 import com.tourism.util.PageService;
@@ -68,7 +68,7 @@ class BookingServiceTests {
     @Mock
     private BookingMapper mapper;
     @Mock
-    private BookingQueueServiceSQSImpl queueService;
+    private BookingSendingQueueService queueService;
     @Mock
     private LodgingOwnerObserver lodgingOwnerObserver;
     @Mock

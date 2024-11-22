@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -59,9 +60,7 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
                     Objects.requireNonNull(userRepository.findById(userId).orElse(null)),
                     true
             );
-
-            List<TouristicPlaceCategory> categories = this.transformCategoriesToTouristicPlaceCategory(touristicPlaceDto, place);
-            place.setCategories(categories);
+            place.setCategories(this.transformCategoriesToTouristicPlaceCategory(touristicPlaceDto, place));
 
             return Either.right(mapper.modelToResponseDto(repository.save(place)));
         } catch (DataIntegrityViolationException e) {
@@ -79,14 +78,15 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
     @Override
     public Either<ErrorDto[], TouristicPlaceResponseDTO> update(TouristicPlaceRequestDTO placeDTO) {
         try {
-            TouristicPlace place = repository.findById(placeDTO.getId()).orElse(null);
-            if (place != null) {
-                place.setName(placeDTO.getName());
-                place.setDescription(placeDTO.getDescription());
-                place.setRegion(placeDTO.getRegion());
-                place.setCategories(this.transformCategoriesToTouristicPlaceCategory(placeDTO, place));
-                place.setEnabled(placeDTO.getEnabled());
-                return Either.right(mapper.modelToResponseDto(repository.save(place)));
+            Optional<TouristicPlace> place = repository.findById(placeDTO.getId());
+            if (place.isPresent()) {
+                place.get().getCategories().clear();
+                place.get().setName(placeDTO.getName());
+                place.get().setDescription(placeDTO.getDescription());
+                place.get().setRegion(placeDTO.getRegion());
+                place.get().getCategories().addAll(this.transformCategoriesToTouristicPlaceCategory(placeDTO, place.get()));
+                place.get().setEnabled(placeDTO.getEnabled());
+                return Either.right(mapper.modelToResponseDto(repository.save(place.get())));
             } else {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, "Error to delete touristic place", null)});
             }
@@ -175,14 +175,12 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
     }
 
     private List<TouristicPlaceCategory> transformCategoriesToTouristicPlaceCategory(TouristicPlaceRequestDTO touristicPlaceDto, TouristicPlace place) {
-        List<TouristicPlaceCategory> categories = new ArrayList<>();
-        touristicPlaceDto.getCategories().forEach(c -> {
-            Category category = categoryRepository.findById(c.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + c.getId()));
-            TouristicPlaceCategoryId id = new TouristicPlaceCategoryId(place.getId(), c.getId());
-            categories.add(new TouristicPlaceCategory(id, place, category));
-        });
-
-        return categories;
+        return touristicPlaceDto.getCategories().stream()
+                .map(c -> {
+                    Category category = categoryRepository.findById(c.getId())
+                            .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + c.getId()));
+                    TouristicPlaceCategoryId id = new TouristicPlaceCategoryId(place.getId(), c.getId());
+                    return new TouristicPlaceCategory(id, place, category);
+                }).collect(Collectors.toList());
     }
 }

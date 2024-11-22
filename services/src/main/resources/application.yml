@@ -20,7 +20,7 @@ spring:
       cache:
         use_second_level_cache: false
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
     topic:
       booking: booking-topic
     consumer:
@@ -32,16 +32,11 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
-
 aws:
   region: us-east-2
   credentials:
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}
-  sqs:
-    queue:
-      name: bookings-dev
-      url: ${AWS_SQS_QUEUE_URL}
 
 encrypt:
   password: ${ENCRYPT_PASSWORD}
@@ -50,3 +45,7 @@ session:
   client-secret: ${SESSION_CLIENT_SECRET}
   access-token-expiration-time: 15
   refresh-token-expiration-time: 7
+
+admin:
+  user: ${ADMIN_USER}
+  password: ${ADMIN_PASSWORD}
