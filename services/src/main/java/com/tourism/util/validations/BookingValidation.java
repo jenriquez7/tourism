@@ -51,7 +51,7 @@ public class BookingValidation {
         return getErrorResponse(errors);
     }
 
-    public boolean invalidLodgingCapacityVsBookings(int adults, int children, int babies, LocalDate checkIn, LocalDate checkOut, Lodging lodging) throws IllegalArgumentException{
+    public boolean validLodgingCapacityVsBookings(int adults, int children, int babies, LocalDate checkIn, LocalDate checkOut, Lodging lodging) throws IllegalArgumentException{
         int personsInBooking = adults + children + babies;
         List<LocalDate> bookingDates = dateValidation.datesBetweenDates(checkIn, checkOut);
         for (LocalDate date : bookingDates) {
@@ -60,10 +60,10 @@ public class BookingValidation {
                     .mapToInt(b -> b.getBooking().getAdults() + b.getBooking().getChildren() + b.getBooking().getBabies())
                     .sum();
             if (lodging.getCapacity() - totalPersons - personsInBooking  < 0) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     public Either<ErrorDto[], Boolean> validChangeState(Booking booking, BookingState newState, UUID userId) throws IllegalArgumentException {

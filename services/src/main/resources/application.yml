@@ -14,6 +14,8 @@ spring:
   jpa:
     database: postgresql
     show-sql: true
+    properties:
+      enable_lazy_loading_no_trans: true
     hibernate:
       format_sql: true
       ddl-auto: update
@@ -31,6 +33,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
 
 aws:
   region: us-east-2

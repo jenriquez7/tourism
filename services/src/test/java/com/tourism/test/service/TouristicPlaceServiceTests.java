@@ -1,12 +1,10 @@
 package com.tourism.test.service;
 
-import com.tourism.dto.mappers.TouristMapper;
 import com.tourism.dto.mappers.TouristicPlaceMapper;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.request.TouristicPlaceRequestDTO;
 import com.tourism.dto.response.CategoryDTO;
 import com.tourism.dto.response.ErrorDto;
-import com.tourism.dto.response.TouristResponseDTO;
 import com.tourism.dto.response.TouristicPlaceResponseDTO;
 import com.tourism.model.*;
 import com.tourism.repository.CategoryRepository;
@@ -63,6 +61,7 @@ class TouristicPlaceServiceTests {
     private TouristicPlace place;
     private TouristicPlaceRequestDTO placeRequestDTO;
     private TouristicPlaceResponseDTO placeResponseDTO;
+    private List<TouristicPlaceCategory> placeCategories;
     private Category category;
     private Category otherCategory;
     private PageableRequest pageableRequest;
@@ -88,7 +87,9 @@ class TouristicPlaceServiceTests {
 
         placeRequestDTO = new TouristicPlaceRequestDTO(placeId, "Punta del Este", "Hermoso lugar", Region.EAST, categories, true);
         placeResponseDTO = new TouristicPlaceResponseDTO(placeId, "Punta del Este", "Hermoso lugar", Region.EAST, categoriesDto, true);
-        place = new TouristicPlace("Punta del Este", "Hermoso lugar", Region.EAST, new User(), true);
+        place = new TouristicPlace("Punta del Este", "Hermoso lugar", Region.EAST, placeCategories, new User(), true);
+        placeCategories = new ArrayList<>(List.of(new TouristicPlaceCategory(place, category), new TouristicPlaceCategory(place, otherCategory)));
+        place.setCategories(placeCategories);
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
     }
@@ -100,7 +101,7 @@ class TouristicPlaceServiceTests {
         User user = new User();
         user.setId(userId);
 
-        TouristicPlace savedPlace = new TouristicPlace(place.getName(), place.getDescription(), place.getRegion(), user, true);
+        TouristicPlace savedPlace = new TouristicPlace(place.getName(), place.getDescription(), place.getRegion(), placeCategories, user, true);
 
         List<TouristicPlaceCategory> touristicPlaceCategories = Arrays.asList(
                 new TouristicPlaceCategory(savedPlace, category),
@@ -238,7 +239,7 @@ class TouristicPlaceServiceTests {
     @Test
     @DisplayName("Find All Touristic Places - Success")
     void findAllSuccess() {
-        List<TouristicPlace> placeList = Arrays.asList(place, new TouristicPlace("Montevideo", "Capital city", Region.SOUTH, new User(), true));
+        List<TouristicPlace> placeList = Arrays.asList(place, new TouristicPlace("Montevideo", "Capital city", Region.SOUTH, placeCategories, new User(), true));
         Page<TouristicPlace> page = new PageImpl<>(placeList, pageable, placeList.size());
         TouristicPlaceResponseDTO dto1 = placeResponseDTO;
         TouristicPlaceResponseDTO dto2 = new TouristicPlaceResponseDTO(UUID.randomUUID(),placeList.getLast().getName(), placeList.getLast().getDescription(), placeList.getLast().getRegion(), List.of(categoryDto, otherCategoryDto), placeList.getLast().getEnabled());
@@ -396,8 +397,8 @@ class TouristicPlaceServiceTests {
     void findByNameSuccess() {
         String name = "Beach";
         List<TouristicPlace> placeList = Arrays.asList(
-                new TouristicPlace("Beach Resort", "Beautiful beach resort", Region.EAST, new User(), true),
-                new TouristicPlace("Beach Hotel", "Luxurious beach hotel", Region.SOUTH, new User(), true)
+                new TouristicPlace("Beach Resort", "Beautiful beach resort", Region.EAST, placeCategories, new User(), true),
+                new TouristicPlace("Beach Hotel", "Luxurious beach hotel", Region.SOUTH, placeCategories, new User(), true)
         );
         Page<TouristicPlace> placePage = new PageImpl<>(placeList, pageable, placeList.size());
         TouristicPlaceResponseDTO dto1 = new TouristicPlaceResponseDTO(UUID.randomUUID(),placeList.getFirst().getName(), placeList.getFirst().getDescription(), placeList.getFirst().getRegion(), List.of(categoryDto, otherCategoryDto), placeList.getFirst().getEnabled());;
@@ -456,8 +457,8 @@ class TouristicPlaceServiceTests {
     void findByRegionSuccess() {
         Region region = Region.EAST;
         List<TouristicPlace> placeList = Arrays.asList(
-                new TouristicPlace("East Resort", "Beautiful east resort", Region.EAST, new User(), true),
-                new TouristicPlace("East Hotel", "Luxurious east hotel", Region.EAST, new User(), true)
+                new TouristicPlace("East Resort", "Beautiful east resort", Region.EAST, placeCategories, new User(), true),
+                new TouristicPlace("East Hotel", "Luxurious east hotel", Region.EAST, placeCategories, new User(), true)
         );
         Page<TouristicPlace> placePage = new PageImpl<>(placeList, pageable, placeList.size());
         TouristicPlaceResponseDTO dto1 = placeResponseDTO;

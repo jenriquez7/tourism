@@ -57,6 +57,7 @@ public class TouristicPlaceServiceImpl implements TouristicPlaceService {
                     touristicPlaceDto.getName(),
                     touristicPlaceDto.getDescription(),
                     touristicPlaceDto.getRegion(),
+                    null,
                     Objects.requireNonNull(userRepository.findById(userId).orElse(null)),
                     true
             );

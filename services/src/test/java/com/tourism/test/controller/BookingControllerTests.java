@@ -61,7 +61,7 @@ class BookingControllerTests {
         LocalDate checkOut = LocalDate.now().plusDays(3L);
         UUID bookingId = UUID.randomUUID();
         Lodging lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), new LodgingOwner(), true);
-        requestDTO = new BookingRequestDTO(checkIn, checkOut, lodging, 2, 1, 1);
+        requestDTO = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
         responseDTO = new BookingResponseDTO(bookingId, lodging.getName(), "Turista", "Verano", checkIn, checkOut, 150.0, lodging.getPhone(), lodging.getInformation(), BookingState.CREATED);
         updateRequestDTO = new BookingUpdateRequestDTO(bookingId, checkIn.plusDays(5L), checkOut.plusDays(7L));
     }

@@ -100,7 +100,7 @@ class BookingServiceTests {
         lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), owner, true);
         tourist.setId(UUID.randomUUID());
         lodging.setId(UUID.randomUUID());
-        requestDto = new BookingRequestDTO(checkIn, checkOut, lodging, 2, 1, 1);
+        requestDto = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
         updateDto = new BookingUpdateRequestDTO(UUID.randomUUID(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(4));
         existingBooking = new Booking(checkIn, checkOut, 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1, false);
         existingBooking.setId(updateDto.bookingId());
@@ -192,9 +192,11 @@ class BookingServiceTests {
     @DisplayName("Create Booking - Success")
     void processBookingSuccess() {
         when(touristRepository.findById(any())).thenReturn(Optional.of(tourist));
-        when(bookingValidation.invalidLodgingCapacityVsBookings(
+        when(lodgingRepository.findById(any())).thenReturn(Optional.of(lodging));
+        when(bookingValidation.validLodgingCapacityVsBookings(
                 anyInt(), anyInt(), anyInt(), any(), any(), any()
         )).thenReturn(true);
+
         when(dateValidation.datesBetweenDates(any(), any())).thenReturn(mockDates);
         when(pricingService.calculateBookingPrice(any(), any(), any(), anyInt(), anyInt(), anyInt()))
                 .thenReturn(100.0);
@@ -214,7 +216,8 @@ class BookingServiceTests {
     @DisplayName("Create Booking - Unavailable")
     void processBookingUnavailable() {
         when(touristRepository.findById(any())).thenReturn(Optional.of(tourist));
-        when(bookingValidation.invalidLodgingCapacityVsBookings(anyInt(), anyInt(), anyInt(), any(), any(), any())).thenReturn(false);
+        when(lodgingRepository.findById(any())).thenReturn(Optional.of(lodging));
+        when(bookingValidation.validLodgingCapacityVsBookings(anyInt(), anyInt(), anyInt(), any(), any(), any())).thenReturn(false);
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         bookingService.processBooking(bookingMessage);

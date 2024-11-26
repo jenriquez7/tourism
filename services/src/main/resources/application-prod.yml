@@ -16,6 +16,7 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
+        enable_lazy_loading_no_trans: true
         format_sql: true
         default_schema: public
         hbm2ddl:
@@ -26,6 +27,9 @@ spring:
         transaction:
           jta:
             platform: org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
 
 aws:
   region: ${AWS_REGION}

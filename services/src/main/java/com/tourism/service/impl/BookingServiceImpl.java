@@ -72,11 +72,14 @@ public class BookingServiceImpl implements BookingService {
     public Either<ErrorDto[], String> create(BookingRequestDTO bookingDto, UUID touristId) {
         try {
             Tourist tourist = touristRepository.findById(touristId).orElse(null);
-            Lodging lodging = lodgingRepository.findById(bookingDto.lodging().getId()).orElse(null);
+            Lodging lodging = lodgingRepository.findById(bookingDto.lodgingId()).orElse(null);
             Either<ErrorDto[], Boolean> validation = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
             if (validation.isRight()) {
-                queueSendingService.sendMessage(bookingDto, touristId);
+                queueSendingService.sendMessage(
+                        new BookingRequestDTO(bookingDto.checkIn(), bookingDto.checkOut(),
+                        bookingDto.lodgingId(), bookingDto.adults(), bookingDto.children(), bookingDto.babies()),
+                        touristId);
                 return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
             } else {
                 return Either.left(validation.getLeft());
@@ -94,18 +97,17 @@ public class BookingServiceImpl implements BookingService {
     public void processBooking(BookingMessage bookingMessage) {
         Either<ErrorDto[], Booking> booking;
         Tourist tourist = touristRepository.findById(bookingMessage.touristId()).orElse(null);
-        if (bookingValidation.invalidLodgingCapacityVsBookings(bookingMessage.bookingRequest().adults(),
+        Lodging lodging = lodgingRepository.findById(bookingMessage.bookingRequest().lodgingId()).orElse(null);
+        if (bookingValidation.validLodgingCapacityVsBookings(bookingMessage.bookingRequest().adults(),
                 bookingMessage.bookingRequest().children(), bookingMessage.bookingRequest().babies(),
                 bookingMessage.bookingRequest().checkIn(), bookingMessage.bookingRequest().checkOut(),
-                bookingMessage.bookingRequest().lodging())) {
+                lodging)) {
 
-            booking = this.createBooking(bookingMessage.bookingRequest(), bookingMessage.bookingRequest().lodging(), Objects.requireNonNull(tourist), BookingState.CREATED);
-            this.notifyObservers(bookingMessage.bookingRequest().lodging().getName(), booking.get().getId(),
-                    tourist, bookingMessage.bookingRequest().lodging().getLodgingOwner(), BookingState.CREATED);
+            booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist), BookingState.CREATED);
+            this.notifyObservers(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.CREATED);
         } else {
-            booking = this.createBooking(bookingMessage.bookingRequest(), bookingMessage.bookingRequest().lodging(), Objects.requireNonNull(tourist), BookingState.UNAVAILABLE);
-            this.notifyObservers(bookingMessage.bookingRequest().lodging().getName(), booking.get().getId(),
-                    tourist, bookingMessage.bookingRequest().lodging().getLodgingOwner(), BookingState.UNAVAILABLE);
+            booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist), BookingState.UNAVAILABLE);
+            this.notifyObservers(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.UNAVAILABLE);
         }
     }
 
