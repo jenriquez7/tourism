@@ -6,6 +6,8 @@ import com.tourism.util.MessageConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class LodgingOwnerObserver implements BookingObserver {
 
@@ -17,32 +19,31 @@ public class LodgingOwnerObserver implements BookingObserver {
     }
 
     @Override
-    public void notifyStatusChange(Booking booking, BookingState state) {
-        LodgingOwner owner = booking.getLodging().getLodgingOwner();
+    public void notifyStatusChange(String lodgingName, UUID bookingId, Tourist tourist, LodgingOwner owner, BookingState state) {
         StringBuilder builder = new StringBuilder();
         switch (state) {
             case CREATED:
                 builder.append(MessageConstants.CREATED_BOOKING_OWNER)
-                        .append(booking.getLodging().getName()).append(". ")
-                        .append(MessageConstants.BOOKING_ID_IS).append(booking.getId());
+                        .append(lodgingName).append(". ")
+                        .append(MessageConstants.BOOKING_ID_IS).append(bookingId);
                 break;
             case PENDING:
                 builder.append(MessageConstants.PENDING_BOOKING_OWNER)
-                        .append(booking.getLodging().getName()).append(". ")
-                        .append(MessageConstants.BOOKING_ID_IS).append(booking.getId());
+                        .append(lodgingName).append(". ")
+                        .append(MessageConstants.BOOKING_ID_IS).append(bookingId);
                 break;
             case REJECTED:
                 builder.append(MessageConstants.REJECTED_BOOKING_OWNER)
-                        .append(booking.getLodging().getName()).append(" - ").append(booking.getId());
+                        .append(lodgingName).append(" - ").append(bookingId);
                 break;
             case ACCEPTED:
                 builder.append(MessageConstants.ACCEPTED_BOOKING_OWNER)
-                        .append(booking.getLodging().getName()).append(" - ")
-                        .append(booking.getId());
+                        .append(lodgingName).append(" - ")
+                        .append(bookingId);
                 break;
             case EXPIRED:
                 builder.append(MessageConstants.THE_BOOKING_IN)
-                        .append(booking.getLodging().getName()).append(" - ")
+                        .append(lodgingName).append(" - ")
                         .append(MessageConstants.EXPIRED_BOOKING);
                 break;
         }

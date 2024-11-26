@@ -232,7 +232,7 @@ class LodgingServiceTests {
         when(repository.findById(lodging.getId())).thenReturn(Optional.of(lodging));
         when(ownerRepository.findById(ownerId)).thenReturn(Optional.of(owner));
         when(bookingDateRepository.findLastBookingDateByLodgingAndState(lodging, BookingState.ACCEPTED)).thenReturn(LocalDate.now().plusDays(30));
-        when(bookingValidation.invalidLodgingCapacityVsBookings(anyInt(), anyInt(), anyInt(), any(LocalDate.class), any(LocalDate.class), any(Lodging.class))).thenReturn(true);
+        when(bookingValidation.validLodgingCapacityVsBookings(anyInt(), anyInt(), anyInt(), any(LocalDate.class), any(LocalDate.class), any(Lodging.class))).thenReturn(false);
 
         Either<ErrorDto[], LodgingResponseDTO> result = service.update(lodging, ownerId);
 

@@ -25,6 +25,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,7 +62,7 @@ class AuthServiceTests {
         user.setEmail("test@example.com");
         user.setPassword("hashedPassword");
 
-        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(user);
+        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(Optional.of(user));
         when(encryptionService.checkPassword(authUserDto.getPassword(), user.getPassword())).thenReturn(true);
         when(jwtTokenProvider.generateAccessToken(user)).thenReturn("accessToken");
         when(jwtTokenProvider.generateRefreshToken(user)).thenReturn("refreshToken");
@@ -84,7 +85,7 @@ class AuthServiceTests {
         user.setEmail("test@example.com");
         user.setPassword("hashedPassword");
 
-        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(user);
+        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(Optional.of(user));
         when(encryptionService.checkPassword(authUserDto.getPassword(), user.getPassword())).thenReturn(false);
 
         Either<ErrorDto[], Map<String, String>> result = authService.login(authUserDto);

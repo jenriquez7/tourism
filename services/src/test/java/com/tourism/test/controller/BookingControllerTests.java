@@ -10,6 +10,7 @@ import com.tourism.infrastructure.JwtTokenProvider;
 import com.tourism.model.Role;
 import com.tourism.model.*;
 import com.tourism.service.BookingService;
+import com.tourism.util.MessageConstants;
 import io.vavr.control.Either;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,9 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,16 +55,13 @@ class BookingControllerTests {
     private BookingResponseDTO responseDTO;
     private BookingUpdateRequestDTO updateRequestDTO;
 
-    private LocalDate checkIn;
-    private LocalDate checkOut;
-
     @BeforeEach
     void setUp() {
-        checkIn = LocalDate.now();
-        checkOut = LocalDate.now().plusDays(3L);
+        LocalDate checkIn = LocalDate.now();
+        LocalDate checkOut = LocalDate.now().plusDays(3L);
         UUID bookingId = UUID.randomUUID();
         Lodging lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), new LodgingOwner(), true);
-        requestDTO = new BookingRequestDTO(checkIn, checkOut, lodging, 2, 1, 1);
+        requestDTO = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
         responseDTO = new BookingResponseDTO(bookingId, lodging.getName(), "Turista", "Verano", checkIn, checkOut, 150.0, lodging.getPhone(), lodging.getInformation(), BookingState.CREATED);
         updateRequestDTO = new BookingUpdateRequestDTO(bookingId, checkIn.plusDays(5L), checkOut.plusDays(7L));
     }
@@ -75,27 +71,23 @@ class BookingControllerTests {
     void create() {
         User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
         when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.create(requestDTO, user.getId())).thenReturn(Either.right(responseDTO));
-        ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.create(request, requestDTO);
+        when(service.create(requestDTO, user.getId())).thenReturn(Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED));
+        ResponseEntity<StandardResponseDto<String>> response = controller.create(request, requestDTO);
 
-        verifyBookingResponseDto(response);
+        validateBookingProcessed(response);
         verify(service, times(1)).create(requestDTO, user.getId());
     }
 
     @Test
     @DisplayName("Update Booking")
     void update() {
-        BookingResponseDTO updated = new BookingResponseDTO(responseDTO.id(), responseDTO.lodgingName(), responseDTO.firstName(),
-                responseDTO.lastName(), checkIn.plusDays(5L), checkOut.plusDays(7L), responseDTO.totalPrice(),
-                responseDTO.lodgingPhone(), responseDTO.lodgingInformation(), responseDTO.state());
-
         User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
         when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.update(updateRequestDTO, user.getId())).thenReturn(Either.right(updated));
+        when(service.update(updateRequestDTO, user.getId())).thenReturn(Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED));
 
-        ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.update(request, updateRequestDTO);
+        ResponseEntity<StandardResponseDto<String>> response = controller.update(request, updateRequestDTO);
 
-        verifyBookingResponseDto(response);
+        validateBookingProcessed(response);
         verify(service, times(1)).update(updateRequestDTO, user.getId());
     }
 
@@ -224,5 +216,15 @@ class BookingControllerTests {
         assertEquals(responseDTO.checkIn(), responseDto.checkIn());
         assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
         assertEquals(responseDTO.firstName(), responseDto.firstName());
+    }
+
+    private static void validateBookingProcessed(ResponseEntity<StandardResponseDto<String>> response) {
+        StandardResponseDto<String> body = response.getBody();
+        assertNotNull(body);
+        Object[] data = body.getData();
+        assertEquals(1, data.length);
+        assertInstanceOf(String.class, data[0]);
+        String result = (String) data[0];
+        assertEquals(result, MessageConstants.BOOKING_IS_BEING_PROCESSED);
     }
 }

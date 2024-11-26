@@ -20,7 +20,7 @@ public final class MessageConstants {
     public static final String ERROR_INCORRECT_USER_OR_PASSWORD = "Incorrect user or password";
     public static final String ERROR_INVALID_TOKEN = "Invalid token";
     public static final String ERROR_REFRESH_TOKEN_NOT_FOUND = "Refresh token not found";
-    public static final String ERROR_PRICING_METHOD_NOT_FOUND = "Estrategia de cálculo no encontrada: ";
+    public static final String ERROR_PRICING_METHOD_NOT_FOUND = "Pricing method not found";
 
     public static final String ERROR_DELETING_TOURISTIC_PLACE = "Error to delete touristic place";
     public static final String ERROR_GET_TOURISTIC_PLACE = "Error to get touristic place";
@@ -70,8 +70,12 @@ public final class MessageConstants {
     public static final String ERROR_BOOKING_DATES = "There are some problem with check in and check out dates";
     public static final String ERROR_CHECK_IN_AFTER_CHECKOUT = "checkIn date is after than checkOut date";
     public static final String ERROR_CHECK_IN_IN_THE_PAST = "checkIn date is in the past. Must be in present or future";
-    public static final String ERROR_ENOUGH_CAPACITY = "Lodging hasn't enough capacity to this booking";
     public static final String ERROR_BOOKING_WITHOUT_ADULT = "At least one adult is necessary";
+
+    public static final String ERROR_SENDING_MESSAGE = "Error sending message: {}";
+    public static final String MESSAGE_SUCCESSFULLY = "Message sent successfully";
+    public static final String ERROR_FORMATTING_JSON = "Error to process entity to JSON";
+    public static final String MESSAGE_SENT_TO_OBSERVERS = "Booking request sent to queue for tourist: {} and lodwing owner: {}";
 
     public static final String ERROR_CREATE_NOTIFICATION = "Error al crear notificacion";
     public static final String CREATED_BOOKING_TOURIST = "Nuevo booking creado que requiere su atención: ";
@@ -86,5 +90,7 @@ public final class MessageConstants {
     public static final String PENDING_BOOKING_OWNER = "Se ha aceptado correctamente la reserva para ";
     public static final String REJECTED_BOOKING_OWNER = "Ha quedado rechazado la reserva en: ";
     public static final String ACCEPTED_BOOKING_OWNER = "Se ha confirmado la reserva en: ";
+    public static final String BOOKING_IS_BEING_PROCESSED = "Se está procesando la reserva. Aguarde confirmación";
+    public static final String ERROR_ENOUGH_CAPACITY = "no fue posible hacer la reserva por alcanzar el límite de capacidad";
 
 }

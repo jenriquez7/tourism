@@ -81,7 +81,7 @@ public class LodgingServiceImpl implements LodgingService {
 
             if (lodging != null && lodging.getLodgingOwner().equals(lodgingOwner)) {
                 LocalDate lastBookingDate = bookingDateRepository.findLastBookingDateByLodgingAndState(lodging, BookingState.ACCEPTED);
-                if (lastBookingDate != null && bookingValidation.invalidLodgingCapacityVsBookings(0, 0, 0, LocalDate.now(), lastBookingDate, lodgingDTO)) {
+                if (lastBookingDate != null && !bookingValidation.validLodgingCapacityVsBookings(0, 0, 0, LocalDate.now(), lastBookingDate, lodgingDTO)) {
                     return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_FULL_CAPACITY)});
                 }
 

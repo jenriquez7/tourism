@@ -4,5 +4,5 @@ public enum Role {
     ADMIN,
     TOURIST,
     LODGING_OWNER,
-    EVERY_ROL
+    EVERY_ROLE
 }

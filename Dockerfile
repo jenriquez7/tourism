@@ -1,4 +1,4 @@
-# Dockerfile actualizado
+# Dockerfile
 FROM maven:3.9.6-eclipse-temurin-22 AS build
 
 WORKDIR /app

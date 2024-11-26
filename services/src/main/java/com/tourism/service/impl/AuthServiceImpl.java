@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -47,18 +48,18 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Either<ErrorDto[], Map<String, String>> login(AuthUserDto authUserDto) {
         try {
-            User user = userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true);
-            if (user == null) {
+            Optional<User> user = userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true);
+            if (user.isEmpty()) {
                 loginRepository.save(new Login(authUserDto.getEmail(), false));
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.LOGIN_FAILED.name(), MessageConstants.ERROR_INCORRECT_USER_OR_PASSWORD)});
             }
 
-            if (Boolean.TRUE.equals(encryptionService.checkPassword(authUserDto.getPassword(), user.getPassword()))) {
+            if (Boolean.TRUE.equals(encryptionService.checkPassword(authUserDto.getPassword(), user.get().getPassword()))) {
                 loginRepository.save(new Login(authUserDto.getEmail(), true));
-                String accessToken = jwtTokenProvider.generateAccessToken(user);
-                String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+                String accessToken = jwtTokenProvider.generateAccessToken(user.get());
+                String refreshToken = jwtTokenProvider.generateRefreshToken(user.get());
 
-                refreshTokenRepository.save(new RefreshToken(refreshToken, user));
+                refreshTokenRepository.save(new RefreshToken(refreshToken, user.get()));
 
                 Map<String, String> tokens = new HashMap<>();
                 tokens.put("accessToken", accessToken);
