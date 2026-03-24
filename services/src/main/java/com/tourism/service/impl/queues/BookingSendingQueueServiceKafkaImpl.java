@@ -31,10 +31,10 @@ public class BookingSendingQueueServiceKafkaImpl implements BookingSendingQueueS
    private final ObjectMapper objectMapper;
 
    @Override
-   public void sendMessage(BookingRequestDTO bookingDto, UUID touristId) {
+   public void sendMessage(BookingRequestDTO bookingDto, UUID touristId, String idempotencyKey) {
       CompletableFuture.runAsync(() -> {
          try {
-            BookingMessage message = new BookingMessage(bookingDto, touristId);
+            BookingMessage message = new BookingMessage(bookingDto, touristId, idempotencyKey);
             String messageBody = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(bookingTopic, messageBody);
             log.info("Message sent to Kafka topic [{}]: {}", bookingTopic, messageBody);

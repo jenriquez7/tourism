@@ -1,14 +1,20 @@
 package com.tourism.test.util;
 
-import com.tourism.dto.request.BookingRequestDTO;
-import com.tourism.dto.response.ErrorDto;
-import com.tourism.model.Role;
-import com.tourism.model.*;
-import com.tourism.repository.BookingDateRepository;
-import com.tourism.util.MessageConstants;
-import com.tourism.util.validations.BookingValidation;
-import com.tourism.util.validations.DateValidation;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import io.vavr.control.Either;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,279 +26,288 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 
-import java.time.LocalDate;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import com.tourism.dto.request.BookingRequestDTO;
+import com.tourism.dto.response.ErrorDto;
+import com.tourism.model.Booking;
+import com.tourism.model.BookingDate;
+import com.tourism.model.BookingState;
+import com.tourism.model.Lodging;
+import com.tourism.model.LodgingOwner;
+import com.tourism.model.Role;
+import com.tourism.model.Tourist;
+import com.tourism.model.TouristType;
+import com.tourism.model.TouristicPlace;
+import com.tourism.repository.BookingDateRepository;
+import com.tourism.util.MessageConstants;
+import com.tourism.util.validations.BookingValidation;
+import com.tourism.util.validations.DateValidation;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class BookingValidationTests {
 
-    @Mock
-    private BookingDateRepository dateRepository;
+   @Mock
+   private BookingDateRepository dateRepository;
 
-    @Mock
-    private DateValidation dateValidation;
+   @Mock
+   private DateValidation dateValidation;
 
-    @InjectMocks
-    private BookingValidation bookingValidation;
+   @InjectMocks
+   private BookingValidation bookingValidation;
 
-    private BookingRequestDTO bookingDto;
-    private Tourist tourist;
-    private Lodging lodging;
-    private LodgingOwner owner;
-    private Booking booking;
-    private LocalDate checkIn;
-    private LocalDate checkOut;
+   private BookingRequestDTO bookingDto;
 
-    @BeforeEach
-    void setUp() {
-        checkIn = LocalDate.now().plusDays(1);
-        checkOut = LocalDate.now().plusDays(3);
-        tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
-        owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
-        owner.setId(UUID.randomUUID());
-        tourist.setId(UUID.randomUUID());
-        lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 5, 25.0, 4, new TouristicPlace(), owner, true);
-        lodging.setId(UUID.randomUUID());
-        bookingDto = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2,1,1);
-        booking = new Booking(checkIn, checkOut, 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1, false);
-        booking.setId(UUID.randomUUID());
+   private Tourist tourist;
 
-    }
+   private Lodging lodging;
 
-    @Test
-    @DisplayName("Validate Booking - Valid Booking")
-    void testValidBooking() {
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
+   private LodgingOwner owner;
 
-        assertTrue(result.isRight());
-        assertTrue(result.get());
-    }
+   private Booking booking;
 
-    @Test
-    @DisplayName("Validate Booking - null tourist")
-    void testNullTourist() {
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, null, lodging);
+   private LocalDate checkIn;
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_TOURIST_NOT_FOUND, result.getLeft()[0].message());
-    }
+   private LocalDate checkOut;
 
-    @Test
-    @DisplayName("Validate Booking - null lodging")
-    void testNullLodging() {
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, null);
+   @BeforeEach
+   void setUp() {
+      String key = "key";
+      checkIn = LocalDate.now().plusDays(1);
+      checkOut = LocalDate.now().plusDays(3);
+      tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
+      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
+      owner.setId(UUID.randomUUID());
+      tourist.setId(UUID.randomUUID());
+      lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 5, 25.0, 4, new TouristicPlace(), owner, true);
+      lodging.setId(UUID.randomUUID());
+      bookingDto = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
+      booking = new Booking(checkIn, checkOut, 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1, false, key);
+      booking.setId(UUID.randomUUID());
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_LODGING_NOT_FOUND, result.getLeft()[0].message());
-    }
+   }
 
-    @Test
-    @DisplayName("Validate Booking - CheckOut Before CheckIn")
-    void testCheckOutBeforeCheckIn() {
-        when(dateValidation.checkOutBeforeCheckIn(any(), any())).thenReturn(true);
+   @Test
+   @DisplayName("Validate Booking - Valid Booking")
+   void testValidBooking() {
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
+      assertTrue(result.isRight());
+      assertTrue(result.get());
+   }
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_CHECK_IN_AFTER_CHECKOUT, result.getLeft()[0].message());
-    }
+   @Test
+   @DisplayName("Validate Booking - null tourist")
+   void testNullTourist() {
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, null, lodging);
 
-    @Test
-    @DisplayName("Validate Booking - CheckIn Before Today")
-    void testCheckInBeforeToday() {
-        when(dateValidation.checkInBeforeToday(any())).thenReturn(true);
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_TOURIST_NOT_FOUND, result.getLeft()[0].message());
+   }
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
+   @Test
+   @DisplayName("Validate Booking - null lodging")
+   void testNullLodging() {
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, null);
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_CHECK_IN_IN_THE_PAST, result.getLeft()[0].message());
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.NOT_FOUND, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_LODGING_NOT_FOUND, result.getLeft()[0].message());
+   }
 
-    @Test
-    @DisplayName("Validate Booking - Booking Without Adult")
-    void testBookingWithoutAdult() {
-        BookingRequestDTO bookingDtoTest = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 0,1,1);
+   @Test
+   @DisplayName("Validate Booking - CheckOut Before CheckIn")
+   void testCheckOutBeforeCheckIn() {
+      when(dateValidation.checkOutBeforeCheckIn(any(), any())).thenReturn(true);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDtoTest, tourist, lodging);
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].message());
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_CHECK_IN_AFTER_CHECKOUT, result.getLeft()[0].message());
+   }
 
-    @Test
-    @DisplayName("Validate Booking - Multiple Errors")
-    void testMultipleErrors() {
-        when(dateValidation.checkOutBeforeCheckIn(any(), any())).thenReturn(true);
-        when(dateValidation.checkInBeforeToday(any())).thenReturn(true);
-        BookingRequestDTO bookingDtoTest = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 0,1,1);
+   @Test
+   @DisplayName("Validate Booking - CheckIn Before Today")
+   void testCheckInBeforeToday() {
+      when(dateValidation.checkInBeforeToday(any())).thenReturn(true);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDtoTest, tourist, lodging);
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
-        assertTrue(result.isLeft());
-        assertEquals(3, result.getLeft().length);
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_CHECK_IN_IN_THE_PAST, result.getLeft()[0].message());
+   }
 
-    @Test
-    @DisplayName("Invalid Lodging Capacity - Capacity Exceeded")
-    void testValidLodgingCapacityVsBookingsCapacityExceeded() {
-        lodging.setCapacity(5);
+   @Test
+   @DisplayName("Validate Booking - Booking Without Adult")
+   void testBookingWithoutAdult() {
+      BookingRequestDTO bookingDtoTest = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 0, 1, 1);
 
-        List<LocalDate> mockDates = Arrays.asList(
-                LocalDate.now(),
-                LocalDate.now().plusDays(1)
-        );
-        when(dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut())).thenReturn(mockDates);
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDtoTest, tourist, lodging);
 
-        BookingDate mockBookingDate = new BookingDate();
-        Booking mockBooking = new Booking();
-        mockBooking.setAdults(3);
-        mockBooking.setChildren(1);
-        mockBooking.setBabies(0);
-        mockBookingDate.setBooking(mockBooking);
-        List<BookingDate> mockBookingDates = Collections.singletonList(mockBookingDate);
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].message());
+   }
 
-        when(dateRepository.findBookingDatesByLodgingAndStateAndDateBetweenCheckInAndCheckOutOrderByCheckInAsc(
-                eq(lodging), any(), eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
+   @Test
+   @DisplayName("Validate Booking - Multiple Errors")
+   void testMultipleErrors() {
+      when(dateValidation.checkOutBeforeCheckIn(any(), any())).thenReturn(true);
+      when(dateValidation.checkInBeforeToday(any())).thenReturn(true);
+      BookingRequestDTO bookingDtoTest = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 0, 1, 1);
 
-        boolean result = bookingValidation.validLodgingCapacityVsBookings(2, 1, 0,
-                bookingDto.checkIn(), bookingDto.checkOut(), lodging);
+      Either<ErrorDto[], Boolean> result = bookingValidation.validateBooking(bookingDtoTest, tourist, lodging);
 
-        assertFalse(result);
-    }
+      assertTrue(result.isLeft());
+      assertEquals(3, result.getLeft().length);
+   }
 
-    @Test
-    @DisplayName("Invalid Lodging Capacity - Capacity Not Exceeded")
-    void testValidLodgingCapacityVsBookingsCapacityNotExceeded() {
-        lodging.setCapacity(10);
+   @Test
+   @DisplayName("Invalid Lodging Capacity - Capacity Exceeded")
+   void testValidLodgingCapacityVsBookingsCapacityExceeded() {
+      lodging.setCapacity(5);
 
-        List<LocalDate> mockDates = Arrays.asList(
-                LocalDate.of(2024, 7, 1),
-                LocalDate.of(2024, 7, 2)
-        );
-        when(dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut())).thenReturn(mockDates);
+      List<LocalDate> mockDates = Arrays.asList(LocalDate.now(), LocalDate.now().plusDays(1));
+      when(dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut())).thenReturn(mockDates);
 
-        BookingDate mockBookingDate = new BookingDate();
-        Booking mockBooking = new Booking();
-        mockBooking.setAdults(3);
-        mockBooking.setChildren(1);
-        mockBooking.setBabies(0);
-        mockBookingDate.setBooking(mockBooking);
-        List<BookingDate> mockBookingDates = Collections.singletonList(mockBookingDate);
+      BookingDate mockBookingDate = new BookingDate();
+      Booking mockBooking = new Booking();
+      mockBooking.setAdults(3);
+      mockBooking.setChildren(1);
+      mockBooking.setBabies(0);
+      mockBookingDate.setBooking(mockBooking);
+      List<BookingDate> mockBookingDates = Collections.singletonList(mockBookingDate);
 
-        when(dateRepository.findBookingDatesByLodgingAndStateAndDateBetweenCheckInAndCheckOutOrderByCheckInAsc(
-                eq(lodging), any(), eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
+      when(dateRepository.findBookingDatesByLodgingAndStateAndDateBetweenCheckInAndCheckOutOrderByCheckInAsc(eq(lodging), any(),
+            eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
 
-        boolean result = bookingValidation.validLodgingCapacityVsBookings(2, 1, 0,
-                bookingDto.checkIn(), bookingDto.checkOut(), lodging);
+      boolean result = bookingValidation.validLodgingCapacityVsBookings(2, 1, 0, bookingDto.checkIn(), bookingDto.checkOut(), lodging);
 
-        assertTrue(result);
-    }
+      assertFalse(result);
+   }
 
-    @Test
-    @DisplayName("Valid Change State - Created To Rejected Valid Owner")
-    void testValidChangeStateCreatedToRejectedValidOwner() {
-        booking.setState(BookingState.CREATED);
+   @Test
+   @DisplayName("Invalid Lodging Capacity - Capacity Not Exceeded")
+   void testValidLodgingCapacityVsBookingsCapacityNotExceeded() {
+      lodging.setCapacity(10);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, owner.getId());
+      List<LocalDate> mockDates = Arrays.asList(LocalDate.of(2024, 7, 1), LocalDate.of(2024, 7, 2));
+      when(dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut())).thenReturn(mockDates);
 
-        assertTrue(result.isRight());
-        assertTrue(result.get());
-    }
+      BookingDate mockBookingDate = new BookingDate();
+      Booking mockBooking = new Booking();
+      mockBooking.setAdults(3);
+      mockBooking.setChildren(1);
+      mockBooking.setBabies(0);
+      mockBookingDate.setBooking(mockBooking);
+      List<BookingDate> mockBookingDates = Collections.singletonList(mockBookingDate);
 
-    @Test
-    @DisplayName("Valid Change State - Created To Rejected Invalid Owner")
-    void testValidChangeStateCreatedToRejectedInvalidOwner() {
-        UUID differentUserId = UUID.randomUUID();
-        booking.setState(BookingState.CREATED);
+      when(dateRepository.findBookingDatesByLodgingAndStateAndDateBetweenCheckInAndCheckOutOrderByCheckInAsc(eq(lodging), any(),
+            eq(BookingState.ACCEPTED))).thenReturn(mockBookingDates);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, differentUserId);
+      boolean result = bookingValidation.validLodgingCapacityVsBookings(2, 1, 0, bookingDto.checkIn(), bookingDto.checkOut(), lodging);
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_USER_LODGING_OWNER, result.getLeft()[0].message());
-    }
+      assertTrue(result);
+   }
 
-    @Test
-    @DisplayName("Valid Change State - Created To Invalid State")
-    void testValidChangeStateCreatedToInvalidState() {
-        booking.setState(BookingState.CREATED);
+   @Test
+   @DisplayName("Valid Change State - Created To Rejected Valid Owner")
+   void testValidChangeStateCreatedToRejectedValidOwner() {
+      booking.setState(BookingState.CREATED);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, owner.getId());
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, owner.getId());
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].message());
-    }
+      assertTrue(result.isRight());
+      assertTrue(result.get());
+   }
 
-    @Test
-    @DisplayName("Valid Change State - Pending To Accepted Valid Tourist")
-    void testValidChangeStatePendingToAcceptedValidTourist() {
-        booking.setState(BookingState.PENDING);
-        booking.setAdults(1);
+   @Test
+   @DisplayName("Valid Change State - Created To Rejected Invalid Owner")
+   void testValidChangeStateCreatedToRejectedInvalidOwner() {
+      UUID differentUserId = UUID.randomUUID();
+      booking.setState(BookingState.CREATED);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, tourist.getId());
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, differentUserId);
 
-        assertTrue(result.isRight());
-        assertTrue(result.get());
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_USER_LODGING_OWNER, result.getLeft()[0].message());
+   }
 
-    @Test
-    @DisplayName("Valid Change State - Pending To Accepted Invalid Tourist")
-    void testValidChangeStatePendingToAcceptedInvalidTourist() {
-        UUID differentUserId = UUID.randomUUID();
-        booking.setState(BookingState.PENDING);
+   @Test
+   @DisplayName("Valid Change State - Created To Invalid State")
+   void testValidChangeStateCreatedToInvalidState() {
+      booking.setState(BookingState.CREATED);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, differentUserId);
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, owner.getId());
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_USER_TOURIST, result.getLeft()[0].message());
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].message());
+   }
 
-    @Test
-    @DisplayName("Valid Change State - Pending To Invalid State")
-    void testValidChangeStatePendingToInvalidState() {
-        booking.setState(BookingState.PENDING);
+   @Test
+   @DisplayName("Valid Change State - Pending To Accepted Valid Tourist")
+   void testValidChangeStatePendingToAcceptedValidTourist() {
+      booking.setState(BookingState.PENDING);
+      booking.setAdults(1);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, tourist.getId());
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, tourist.getId());
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].message());
-    }
+      assertTrue(result.isRight());
+      assertTrue(result.get());
+   }
 
-    @Test
-    @DisplayName("Valid Change State - Other State")
-    void testValidChangeStateOtherState() {
-        UUID userId = UUID.randomUUID();
-        booking.setState(BookingState.ACCEPTED);
+   @Test
+   @DisplayName("Valid Change State - Pending To Accepted Invalid Tourist")
+   void testValidChangeStatePendingToAcceptedInvalidTourist() {
+      UUID differentUserId = UUID.randomUUID();
+      booking.setState(BookingState.PENDING);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, userId);
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, differentUserId);
 
-        assertTrue(result.isRight());
-        assertTrue(result.get());
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_USER_TOURIST, result.getLeft()[0].message());
+   }
 
-    @Test
-    @DisplayName("Valid Change State - No Adults")
-    void testValidChangeState_NoAdults() {
-        booking.setState(BookingState.CREATED);
-        booking.setAdults(0);
+   @Test
+   @DisplayName("Valid Change State - Pending To Invalid State")
+   void testValidChangeStatePendingToInvalidState() {
+      booking.setState(BookingState.PENDING);
 
-        Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING, owner.getId());
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, tourist.getId());
 
-        assertTrue(result.isLeft());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
-        assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].message());
-    }
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_BOOKING_CHANGE_STATE, result.getLeft()[0].message());
+   }
+
+   @Test
+   @DisplayName("Valid Change State - Other State")
+   void testValidChangeStateOtherState() {
+      UUID userId = UUID.randomUUID();
+      booking.setState(BookingState.ACCEPTED);
+
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, userId);
+
+      assertTrue(result.isRight());
+      assertTrue(result.get());
+   }
+
+   @Test
+   @DisplayName("Valid Change State - No Adults")
+   void testValidChangeState_NoAdults() {
+      booking.setState(BookingState.CREATED);
+      booking.setAdults(0);
+
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING, owner.getId());
+
+      assertTrue(result.isLeft());
+      assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
+      assertEquals(MessageConstants.ERROR_BOOKING_WITHOUT_ADULT, result.getLeft()[0].message());
+   }
+
 }

@@ -1,9 +1,11 @@
 package com.tourism.service;
 
-import com.tourism.dto.request.BookingRequestDTO;
-
 import java.util.UUID;
 
+import com.tourism.dto.request.BookingRequestDTO;
+
 public interface BookingSendingQueueService {
-    void sendMessage(BookingRequestDTO bookingDto, UUID touristId);
+
+   void sendMessage(BookingRequestDTO bookingDto, UUID touristId, String idempotencyKey);
+
 }
