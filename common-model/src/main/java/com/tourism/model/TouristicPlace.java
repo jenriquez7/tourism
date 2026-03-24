@@ -38,7 +38,10 @@ public class TouristicPlace {
     @Enumerated(EnumType.STRING)
     private Region region;
 
-    @OneToMany(mappedBy = "touristicPlace", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "touristicPlace",
+                fetch = FetchType.LAZY,
+                cascade = CascadeType.ALL,
+                orphanRemoval = true)
     @ToString.Exclude
     private List<TouristicPlaceCategory> categories;
 
@@ -62,4 +65,14 @@ public class TouristicPlace {
 
     // TODO: images list
 
+
+    public TouristicPlace(@NonNull String name, @NonNull String description, @NonNull Region region,
+                          List<TouristicPlaceCategory> categories, @NonNull User user, @NonNull Boolean enabled) {
+        this.name = name;
+        this.description = description;
+        this.region = region;
+        this.categories = categories;
+        this.user = user;
+        this.enabled = enabled;
+    }
 }

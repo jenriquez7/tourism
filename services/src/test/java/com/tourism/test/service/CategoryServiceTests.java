@@ -66,8 +66,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.CONFLICT, errors[0].getCode());
-        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].getMessage());
+        assertEquals(HttpStatus.CONFLICT, errors[0].code());
+        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].message());
     }
 
     @Test
@@ -80,8 +80,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_CREATED, errors[0].message());
     }
 
     @Test
@@ -104,8 +104,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
     }
 
     @Test
@@ -118,8 +118,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.CONFLICT, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_UPDATED, errors[0].getMessage());
+        assertEquals(HttpStatus.CONFLICT, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_UPDATED, errors[0].message());
     }
 
     @Test
@@ -132,8 +132,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_UPDATED, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_UPDATED, errors[0].message());
     }
 
     @Test
@@ -175,8 +175,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.GENERIC_ERROR, errors[0].message());
     }
 
     @Test
@@ -202,8 +202,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].message());
     }
 
     @Test
@@ -216,8 +216,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].message());
     }
 
     @Test
@@ -231,8 +231,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_CATEGORY, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_CATEGORY, errors[0].message());
     }
 
     @Test
@@ -268,8 +268,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
     }
 
     @Test
@@ -283,8 +283,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_CATEGORY, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_CATEGORY, errors[0].message());
     }
 
     @Test
@@ -325,8 +325,8 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_NAME, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_NAME, errors[0].message());
     }
 
     @Test
@@ -340,7 +340,7 @@ class CategoryServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_CATEGORY, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_CATEGORY, errors[0].message());
     }
 }

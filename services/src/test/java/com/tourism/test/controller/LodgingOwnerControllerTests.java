@@ -208,8 +208,8 @@ class LodgingOwnerControllerTests {
 
         assertInstanceOf(LodgingOwnerResponseDTO.class, data[0]);
         LodgingOwnerResponseDTO resultAdmin = (LodgingOwnerResponseDTO) data[0];
-        assertEquals(ownerResponseDTO.getEmail(), resultAdmin.getEmail());
-        assertEquals(ownerResponseDTO.getId(), resultAdmin.getId());
+        assertEquals(ownerResponseDTO.email(), resultAdmin.email());
+        assertEquals(ownerResponseDTO.id(), resultAdmin.id());
     }
 
     private void verifyPageLodgingOwnerResponseDto(ResponseEntity<StandardResponseDto<Page<LodgingOwnerResponseDTO>>> response) {
@@ -227,7 +227,7 @@ class LodgingOwnerControllerTests {
         assertEquals(1, resultPage.getContent().size());
 
         LodgingOwnerResponseDTO resultTourist = resultPage.getContent().getFirst();
-        assertEquals(ownerResponseDTO.getId(), resultTourist.getId());
-        assertEquals(ownerResponseDTO.getEmail(), resultTourist.getEmail());
+        assertEquals(ownerResponseDTO.id(), resultTourist.id());
+        assertEquals(ownerResponseDTO.email(), resultTourist.email());
     }
 }

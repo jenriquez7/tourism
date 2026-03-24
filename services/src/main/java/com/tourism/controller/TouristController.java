@@ -1,19 +1,18 @@
 package com.tourism.controller;
 
 import com.tourism.configuration.annotation.CommonApiResponses;
-import com.tourism.configuration.annotation.RequiresRoles;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.request.TouristRequestDTO;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.StandardResponseDto;
 import com.tourism.dto.response.TouristResponseDTO;
 import com.tourism.infrastructure.JwtTokenProvider;
-import com.tourism.model.Role;
 import com.tourism.model.Tourist;
 import com.tourism.model.User;
 import com.tourism.service.TouristService;
 import com.tourism.util.EndpointConstants;
 import com.tourism.util.ResponseEntityUtil;
+import com.tourism.util.helpers.AuthenticationHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.vavr.control.Either;
@@ -26,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,7 +48,7 @@ public class TouristController {
     }
 
 
-    @Operation(summary = "Create an admin", operationId = "create")
+    @Operation(summary = "Create a tourist", operationId = "create")
     @CommonApiResponses
     @PermitAll
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -60,7 +60,7 @@ public class TouristController {
     @Operation(summary = "Get all tourists", operationId = "findAll")
     @CommonApiResponses
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @RequiresRoles({Role.ADMIN})
+    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
     public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findAll(HttpServletRequest request,
                                                                                  @Valid @ModelAttribute PageableRequest paging) {
         return ResponseEntityUtil.buildObject(request, touristService.findAll(paging));
@@ -69,7 +69,7 @@ public class TouristController {
 
     @Operation(summary = "delete an tourist by admin by id", operationId = "delete")
     @CommonApiResponses
-    @RequiresRoles({Role.ADMIN})
+    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
     @DeleteMapping("/{id}")
     public ResponseEntity<StandardResponseDto<Tourist>> deleteByAdmin(HttpServletRequest request, @PathVariable("id") UUID id) {
         return ResponseEntityUtil.buildObject(request, touristService.delete(id));
@@ -78,7 +78,7 @@ public class TouristController {
 
     @Operation(summary = "delete a tourist by token", operationId = "delete")
     @CommonApiResponses
-    @RequiresRoles({Role.TOURIST})
+    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
     @DeleteMapping()
     public ResponseEntity<StandardResponseDto<Tourist>> delete(HttpServletRequest request) {
         User user = jwtTokenProvider.getUserFromToken(request);
@@ -86,14 +86,14 @@ public class TouristController {
             return ResponseEntityUtil.buildObject(request, touristService.delete(user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
+                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
         }
     }
 
 
     @Operation(summary = "Get an admin by id", operationId = "getById")
     @CommonApiResponses
-    @RequiresRoles({Role.ADMIN})
+    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardResponseDto<TouristResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
         return ResponseEntityUtil.buildObject(request, touristService.getById(id));
@@ -102,7 +102,7 @@ public class TouristController {
 
     @Operation(summary = "delete a tourist by token", operationId = "delete")
     @CommonApiResponses
-    @RequiresRoles({Role.TOURIST})
+    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
     @GetMapping("/profile")
     public ResponseEntity<StandardResponseDto<TouristResponseDTO>> profile(HttpServletRequest request) {
         User user = jwtTokenProvider.getUserFromToken(request);
@@ -110,14 +110,14 @@ public class TouristController {
             return ResponseEntityUtil.buildObject(request, touristService.getById(user.getId()));
         } else {
             return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    new ErrorDto(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
+                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
         }
     }
 
 
     @Operation(summary = "Get a tourist by email", operationId = "findByEmail")
     @CommonApiResponses
-    @RequiresRoles({Role.ADMIN})
+    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
     @GetMapping(value = "/email", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findByEmail(HttpServletRequest request,
                                                                                      @RequestParam("email") String email,
@@ -128,7 +128,7 @@ public class TouristController {
 
     @Operation(summary = "Get a tourist by last name", operationId = "findByLastName")
     @CommonApiResponses
-    @RequiresRoles({Role.ADMIN})
+    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
     @GetMapping(value = "/lastName", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findByLastName(HttpServletRequest request,
                                                                                         @RequestParam("lastName") String lastName,

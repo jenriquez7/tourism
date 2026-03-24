@@ -1,5 +1,7 @@
 package com.tourism.service.impl;
 
+import com.tourism.dto.mappers.BookingMapper;
+import com.tourism.dto.request.BookingMessage;
 import com.tourism.dto.request.BookingRequestDTO;
 import com.tourism.dto.request.BookingUpdateRequestDTO;
 import com.tourism.dto.request.PageableRequest;
@@ -8,6 +10,7 @@ import com.tourism.dto.response.ErrorDto;
 import com.tourism.model.*;
 import com.tourism.observer.BookingObserver;
 import com.tourism.repository.*;
+import com.tourism.service.BookingSendingQueueService;
 import com.tourism.service.BookingService;
 import com.tourism.util.validations.DateValidation;
 import com.tourism.util.MessageConstants;
@@ -18,7 +21,7 @@ import io.vavr.control.Either;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +43,8 @@ public class BookingServiceImpl implements BookingService {
     private final BookingDateRepository dateRepository;
     private final PageService pageService;
     private final PricingService pricingService;
+    private final BookingSendingQueueService queueSendingService;
+    private final BookingMapper mapper;
 
     private final List<BookingObserver> observers = new ArrayList<>();
 
@@ -48,7 +53,8 @@ public class BookingServiceImpl implements BookingService {
     public BookingServiceImpl(BookingRepository repository, TouristRepository touristRepository,
                               LodgingRepository lodgingRepository, BookingValidation bookingValidation,
                               DateValidation dateValidation, BookingDateRepository dateRepository, PageService pageService,
-                              PricingService pricingService) {
+                              PricingService pricingService, BookingMapper mapper,
+                              @Qualifier("bookingQueueServiceKafkaImpl") BookingSendingQueueService queueSendingService) {
         this.repository = repository;
         this.touristRepository = touristRepository;
         this.lodgingRepository = lodgingRepository;
@@ -57,71 +63,79 @@ public class BookingServiceImpl implements BookingService {
         this.dateRepository = dateRepository;
         this.pageService = pageService;
         this.pricingService = pricingService;
+        this.queueSendingService = queueSendingService;
+        this.mapper = mapper;
     }
 
     @Override
     @Transactional
-    public Either<ErrorDto[], BookingResponseDTO> create(BookingRequestDTO bookingDto, UUID touristId) {
+    public Either<ErrorDto[], String> create(BookingRequestDTO bookingDto, UUID touristId) {
         try {
-            bookingDto.setCheckOut(bookingDto.getCheckOut().minusDays(1));
             Tourist tourist = touristRepository.findById(touristId).orElse(null);
-            Lodging lodging = lodgingRepository.findById(bookingDto.getLodging().getId()).orElse(null);
+            Lodging lodging = lodgingRepository.findById(bookingDto.lodgingId()).orElse(null);
             Either<ErrorDto[], Boolean> validation = bookingValidation.validateBooking(bookingDto, tourist, lodging);
 
             if (validation.isRight()) {
-                Either<ErrorDto[], Booking> booking = this.createBooking(bookingDto, lodging, tourist);
-                if (booking.isRight()) {
-                    notifyObservers(booking.get(), BookingState.CREATED);
-                } else {
-                    return Either.left(validation.getLeft());
-                }
-                return Either.right(BookingResponseDTO.bookingToResponseDTO(booking.get()));
+                queueSendingService.sendMessage(
+                        new BookingRequestDTO(bookingDto.checkIn(), bookingDto.checkOut(),
+                        bookingDto.lodgingId(), bookingDto.adults(), bookingDto.children(), bookingDto.babies()),
+                        touristId);
+                return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
             } else {
                 return Either.left(validation.getLeft());
             }
-        } catch (DataIntegrityViolationException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_BOOKING_NOT_CREATED, e.getMessage())});
         } catch (IllegalArgumentException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_BOOKING_DATES, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_NOT_CREATED, e.getMessage())});
         }
     }
 
     @Override
+    public void processBooking(BookingMessage bookingMessage) {
+        Either<ErrorDto[], Booking> booking;
+        Tourist tourist = touristRepository.findById(bookingMessage.touristId()).orElse(null);
+        Lodging lodging = lodgingRepository.findById(bookingMessage.bookingRequest().lodgingId()).orElse(null);
+        if (bookingValidation.validLodgingCapacityVsBookings(bookingMessage.bookingRequest().adults(),
+                bookingMessage.bookingRequest().children(), bookingMessage.bookingRequest().babies(),
+                bookingMessage.bookingRequest().checkIn(), bookingMessage.bookingRequest().checkOut(),
+                lodging)) {
+
+            booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist), BookingState.CREATED);
+            this.notifyObservers(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.CREATED);
+        } else {
+            booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist), BookingState.UNAVAILABLE);
+            this.notifyObservers(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.UNAVAILABLE);
+        }
+    }
+
+    @Override
     @Transactional
-    public Either<ErrorDto[], BookingResponseDTO> update(BookingUpdateRequestDTO bookingDto, UUID touristId) {
+    public Either<ErrorDto[], String> update(BookingUpdateRequestDTO bookingDto, UUID touristId) {
         try {
-            bookingDto.setCheckOut(bookingDto.getCheckOut().minusDays(1));
             Tourist tourist = touristRepository.findById(touristId).orElse(null);
-            Booking booking = repository.findById(bookingDto.getBookingId()).orElse(null);
+            Booking booking = repository.findById(bookingDto.bookingId()).orElse(null);
             if (booking != null) {
                 Lodging lodging = lodgingRepository.findById(booking.getLodging().getId()).orElse(null);
-                BookingRequestDTO bookingRequest = bookingDto.transformRequestDTO(lodging, booking);
+                BookingRequestDTO bookingRequest = mapper.updateToRequest(bookingDto, lodging, booking.getAdults(), booking.getChildren(), booking.getBabies());
                 Either<ErrorDto[], Boolean> validation = bookingValidation.validateBooking(bookingRequest, tourist, lodging);
                 if (validation.isRight()) {
                     dateRepository.deleteByBooking(booking);
-                    booking.setCheckIn(bookingDto.getCheckIn());
-                    booking.setCheckOut(bookingDto.getCheckOut());
-                    booking.setState(BookingState.CREATED);
-                    repository.save(booking);
-
-                    notifyObservers(booking, BookingState.CREATED);
-
-                    List<LocalDate> bookingDays = dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut());
-                    createBookingDates(bookingRequest, booking.getLodging(), bookingDays, booking);
-                    return Either.right(BookingResponseDTO.bookingToResponseDTO(booking));
+                    queueSendingService.sendMessage(bookingRequest, touristId);
+                    return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
                 } else {
                     return Either.left(validation.getLeft());
                 }
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND, null)});
             }
-        } catch (DataIntegrityViolationException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_BOOKING_NOT_UPDATED, e.getMessage())});
         } catch (IllegalArgumentException e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.CONFLICT, MessageConstants.ERROR_BOOKING_DATES, e.getMessage())});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_NOT_UPDATED, e.getMessage())});
         }
     }
@@ -131,8 +145,9 @@ public class BookingServiceImpl implements BookingService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<Booking> bookings = repository.findAll(pageable);
-            return Either.right(bookings.map(BookingResponseDTO::bookingToResponseDTO));
+            return Either.right(bookings.map(mapper::modelToResponseDTO));
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.GENERIC_ERROR, e.getMessage())});
         }
     }
@@ -144,8 +159,10 @@ public class BookingServiceImpl implements BookingService {
             repository.delete(Objects.requireNonNull(booking));
             return Either.right(null);
         } catch (InvalidDataAccessApiUsageException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND, null)});
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_BOOKING, e.getMessage())});
         }
     }
@@ -155,11 +172,12 @@ public class BookingServiceImpl implements BookingService {
         try {
             Booking booking = repository.findById(id).orElse(null);
             if (booking != null) {
-                return Either.right(BookingResponseDTO.bookingToResponseDTO(booking));
+                return Either.right(mapper.modelToResponseDTO(booking));
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID, null)});
             }
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_BOOKING, e.getMessage())});
         }
     }
@@ -171,21 +189,22 @@ public class BookingServiceImpl implements BookingService {
             Booking booking = repository.findById(bookingId).orElse(null);
             if (booking != null) {
                 if (bookingValidation.validChangeState(booking, newState, userId).isRight()) {
-                    notifyObservers(booking, newState);
+                    notifyObservers(booking.getLodging().getName(), bookingId, booking.getTourist(), booking.getLodging().getLodgingOwner(), newState);
                     if (newState.equals(BookingState.ACCEPTED)) {
                         booking.setHasPaid(true);
                     }
                     booking.setState(newState);
                     repository.save(booking);
                 } else {
-                    return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE)});
+                    return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE, null)});
                 }
 
-                return Either.right(BookingResponseDTO.bookingToResponseDTO(booking));
+                return Either.right(mapper.modelToResponseDTO(booking));
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND)});
+                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_BOOKING_NOT_FOUND, null)});
             }
         } catch (Exception e) {
+            log.error(e.getMessage());
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_BOOKING_CHANGE_STATE, e.getMessage())});
         }
     }
@@ -205,6 +224,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public void notifyObservers(String lodgingName, UUID bookingId, Tourist tourist, LodgingOwner owner, BookingState state) {
+        for (BookingObserver observer : observers) {
+            observer.notifyStatusChange(lodgingName, bookingId, tourist, owner, state);
+        }
+    }
+
+    @Override
     public void addObserver(BookingObserver observer) {
         observers.add(observer);
     }
@@ -214,31 +240,27 @@ public class BookingServiceImpl implements BookingService {
         observers.remove(observer);
     }
 
-    private void notifyObservers(Booking booking, BookingState state) {
-        for (BookingObserver observer : observers) {
-            observer.notifyStatusChange(booking, state);
-        }
-    }
 
-    private Either<ErrorDto[], Booking> createBooking(BookingRequestDTO bookingDto, Lodging lodging, Tourist tourist) {
-        List<LocalDate> bookingDays = dateValidation.datesBetweenDates(bookingDto.getCheckIn(), bookingDto.getCheckOut());
-        Double bookingPrice = pricingService.calculateBookingPrice(tourist.getType(), lodging, bookingDays, bookingDto.getAdults(), bookingDto.getChildren(), bookingDto.getBabies());
-
+    private Either<ErrorDto[], Booking> createBooking(BookingRequestDTO bookingDto, Lodging lodging, Tourist tourist, BookingState state) {
+        List<LocalDate> bookingDays = dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut());
+        Double bookingPrice = pricingService.calculateBookingPrice(tourist.getType(), lodging, bookingDays, bookingDto.adults(), bookingDto.children(), bookingDto.babies());
         Booking booking = new Booking(
-                bookingDto.getCheckIn(),
-                bookingDto.getCheckOut(),
+                bookingDto.checkIn(),
+                bookingDto.checkOut(),
                 bookingPrice,
                 lodging,
                 tourist,
-                BookingState.CREATED,
-                bookingDto.getAdults(),
-                bookingDto.getChildren(),
-                bookingDto.getBabies(),
+                state,
+                bookingDto.adults(),
+                bookingDto.children(),
+                bookingDto.babies(),
                 false
         );
         repository.save(booking);
 
-        createBookingDates(bookingDto, lodging, bookingDays, booking);
+        if (state.equals(BookingState.CREATED)) {
+            this.createBookingDates(bookingDto, lodging, bookingDays, booking);
+        }
         return Either.right(booking);
     }
 
@@ -248,7 +270,7 @@ public class BookingServiceImpl implements BookingService {
                     booking,
                     date,
                     pricingService.calculateBookingPrice(booking.getTourist().getType(), lodging, Collections.singletonList(date),
-                            bookingDto.getAdults(), bookingDto.getChildren(), bookingDto.getBabies())
+                            bookingDto.adults(), bookingDto.children(), bookingDto.babies())
             );
             dateRepository.save(bookingDate);
         }

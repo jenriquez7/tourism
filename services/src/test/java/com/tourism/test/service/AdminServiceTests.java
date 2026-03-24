@@ -1,5 +1,6 @@
 package com.tourism.test.service;
 
+import com.tourism.dto.mappers.AdminMapper;
 import com.tourism.dto.request.AuthUserDto;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.AdminResponseDTO;
@@ -68,10 +69,14 @@ class AdminServiceTests {
     @Mock
     private PageService pageService;
 
+    @Mock
+    private AdminMapper mapper;
+
     private AuthUserDto authUserDto;
     private Admin admin;
     private PageableRequest pageableRequest;
     private Pageable pageable;
+    private AdminResponseDTO responseDTO;
 
     @BeforeEach
     void setUp() {
@@ -79,19 +84,19 @@ class AdminServiceTests {
         admin = new Admin("admin@email.com", "12345678", Role.ADMIN, true);
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
+        responseDTO = new AdminResponseDTO(UUID.randomUUID(),authUserDto.getEmail());
     }
 
     @Test
     @DisplayName("Create Admin - Success")
     void createSuccess() {
         String encryptedPassword = "encryptedPassword";
-        UUID adminId = UUID.randomUUID();
-
+        when(mapper.modelToResponseDto(any(Admin.class))).thenReturn(responseDTO);
         when(userValidation.validateEmailAndPassword(authUserDto.getEmail(), authUserDto.getPassword())).thenReturn(Either.right(true));
         when(encryptionService.encryptPassword(authUserDto.getPassword())).thenReturn(encryptedPassword);
         when(repository.save(any(Admin.class))).thenAnswer(invocation -> {
             Admin savedAdmin = invocation.getArgument(0);
-            savedAdmin.setId(adminId);
+            savedAdmin.setId(responseDTO.id());
             return savedAdmin;
         });
 
@@ -99,14 +104,14 @@ class AdminServiceTests {
 
         assertTrue(response.isRight());
         AdminResponseDTO adminResponse = response.get();
-        assertEquals(authUserDto.getEmail(), adminResponse.getEmail());
-        assertEquals(adminId, adminResponse.getId());
+        assertEquals(responseDTO.email(), adminResponse.email());
+        assertEquals(responseDTO.id(), adminResponse.id());
 
         verify(repository).save(argThat(a ->
                 a.getEmail().equals(authUserDto.getEmail()) &&
-                a.getPassword().equals(encryptedPassword) &&
-                a.getRole() == Role.ADMIN &&
-                a.getEnabled()
+                        a.getPassword().equals(encryptedPassword) &&
+                        a.getRole() == Role.ADMIN &&
+                        a.getEnabled()
         ));
     }
 
@@ -139,8 +144,8 @@ class AdminServiceTests {
         assertTrue(response.isLeft());
         ErrorDto[] errors = response.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.CONFLICT, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_ADMIN_NOT_CREATED, errors[0].getMessage());
+        assertEquals(HttpStatus.CONFLICT, errors[0].code());
+        assertEquals(MessageConstants.ERROR_ADMIN_NOT_CREATED, errors[0].message());
     }
 
     @Test
@@ -156,8 +161,8 @@ class AdminServiceTests {
         assertTrue(response.isLeft());
         ErrorDto[] errors = response.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CREATE_ADMIN, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CREATE_ADMIN, errors[0].message());
     }
 
     @Test
@@ -168,7 +173,10 @@ class AdminServiceTests {
                 new Admin("admin2@example.com", "password", Role.ADMIN, true)
         );
         Page<Admin> page = new PageImpl<>(admins);
-
+        AdminResponseDTO dto1 = new AdminResponseDTO(UUID.randomUUID(),admins.getFirst().getEmail());
+        AdminResponseDTO dto2 = new AdminResponseDTO(UUID.randomUUID(),admins.getLast().getEmail());
+        when(mapper.modelToResponseDto(admins.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(admins.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findAll(pageable)).thenReturn(page);
         Either<ErrorDto[], Page<AdminResponseDTO>> result = service.findAll(pageableRequest);
@@ -176,8 +184,8 @@ class AdminServiceTests {
         assertTrue(result.isRight());
         Page<AdminResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("admin1@example.com", resultPage.getContent().get(0).getEmail());
-        assertEquals("admin2@example.com", resultPage.getContent().get(1).getEmail());
+        assertEquals(dto1.email(), resultPage.getContent().get(0).email());
+        assertEquals(dto2.email(), resultPage.getContent().get(1).email());
     }
 
     @Test
@@ -206,9 +214,9 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].getMessage());
-        assertEquals("Database error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].message());
+        assertEquals("Database error", errors[0].detail());
     }
 
     @Test
@@ -240,8 +248,8 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CANNOT_DELETE_LAST_ADMIN, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CANNOT_DELETE_LAST_ADMIN, errors[0].message());
     }
 
     @Test
@@ -256,8 +264,8 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_ADMIN_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_ADMIN_NOT_FOUND, errors[0].message());
     }
 
     @Test
@@ -272,26 +280,24 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
     @DisplayName("Get Admin By Id - Success")
     void getByIdSuccess() {
-        UUID id = UUID.randomUUID();
-        admin.setId(id);
+        when(repository.findById(responseDTO.id())).thenReturn(Optional.of(admin));
+        when(mapper.modelToResponseDto(any(Admin.class))).thenReturn(responseDTO);
 
-        when(repository.findById(id)).thenReturn(Optional.of(admin));
-
-        Either<ErrorDto[], AdminResponseDTO> result = service.getById(id);
+        Either<ErrorDto[], AdminResponseDTO> result = service.getById(responseDTO.id());
 
         assertTrue(result.isRight());
         AdminResponseDTO adminResponseDTO = result.get();
         assertNotNull(adminResponseDTO);
-        assertEquals(id, adminResponseDTO.getId());
-        assertEquals("admin@email.com", adminResponseDTO.getEmail());
+        assertEquals(responseDTO.id(), adminResponseDTO.id());
+        assertEquals("admin@email.com", adminResponseDTO.email());
     }
 
     @Test
@@ -305,8 +311,8 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].message());
     }
 
     @Test
@@ -320,8 +326,8 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
     }
 
     @Test
@@ -335,9 +341,9 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 
     @Test
@@ -349,7 +355,11 @@ class AdminServiceTests {
                 new Admin("admin2@example.com", "password", Role.ADMIN, true)
         );
         Page<Admin> adminPage = new PageImpl<>(admins);
+        AdminResponseDTO dto1 = new AdminResponseDTO(UUID.randomUUID(),admins.getFirst().getEmail());
+        AdminResponseDTO dto2 = new AdminResponseDTO(UUID.randomUUID(),admins.getLast().getEmail());
 
+        when(mapper.modelToResponseDto(admins.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(admins.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findByEmailStartingWithIgnoreCase(email, pageable)).thenReturn(adminPage);
 
@@ -358,8 +368,8 @@ class AdminServiceTests {
         assertTrue(result.isRight());
         Page<AdminResponseDTO> resultPage = result.get();
         assertEquals(2, resultPage.getContent().size());
-        assertEquals("admin1@example.com", resultPage.getContent().get(0).getEmail());
-        assertEquals("admin2@example.com", resultPage.getContent().get(1).getEmail());
+        assertEquals(dto1.email(), resultPage.getContent().get(0).email());
+        assertEquals(dto2.email(), resultPage.getContent().get(1).email());
     }
 
     @Test
@@ -392,8 +402,8 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_EMAIL, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_EMAIL, errors[0].message());
     }
 
     @Test
@@ -410,8 +420,8 @@ class AdminServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_ADMINS, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
     }
 }

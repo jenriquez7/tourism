@@ -1,5 +1,6 @@
 package com.tourism.test.service;
 
+import com.tourism.dto.mappers.TouristicPlaceMapper;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.request.TouristicPlaceRequestDTO;
 import com.tourism.dto.response.CategoryDTO;
@@ -51,16 +52,22 @@ class TouristicPlaceServiceTests {
     @Mock
     private PageService pageService;
 
+    @Mock
+    private TouristicPlaceMapper mapper;
+
     @InjectMocks
     private TouristicPlaceServiceImpl service;
 
     private TouristicPlace place;
     private TouristicPlaceRequestDTO placeRequestDTO;
     private TouristicPlaceResponseDTO placeResponseDTO;
+    private List<TouristicPlaceCategory> placeCategories;
     private Category category;
     private Category otherCategory;
     private PageableRequest pageableRequest;
     private Pageable pageable;
+    private CategoryDTO categoryDto;
+    private CategoryDTO otherCategoryDto;
 
     @BeforeEach
     void setUp() {
@@ -73,14 +80,16 @@ class TouristicPlaceServiceTests {
         categories.add(category);
         categories.add(otherCategory);
 
-        CategoryDTO categoryDto = new CategoryDTO(1, "Playa");
-        CategoryDTO otherCategoryDto = new CategoryDTO(2, "Ciudad");
+        categoryDto = new CategoryDTO(1, "Playa");
+        otherCategoryDto = new CategoryDTO(2, "Ciudad");
         categoriesDto.add(categoryDto);
         categoriesDto.add(otherCategoryDto);
 
         placeRequestDTO = new TouristicPlaceRequestDTO(placeId, "Punta del Este", "Hermoso lugar", Region.EAST, categories, true);
         placeResponseDTO = new TouristicPlaceResponseDTO(placeId, "Punta del Este", "Hermoso lugar", Region.EAST, categoriesDto, true);
-        place = new TouristicPlace("Punta del Este", "Hermoso lugar", Region.EAST, new User(), true);
+        place = new TouristicPlace("Punta del Este", "Hermoso lugar", Region.EAST, placeCategories, new User(), true);
+        placeCategories = new ArrayList<>(List.of(new TouristicPlaceCategory(place, category), new TouristicPlaceCategory(place, otherCategory)));
+        place.setCategories(placeCategories);
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);
     }
@@ -92,8 +101,7 @@ class TouristicPlaceServiceTests {
         User user = new User();
         user.setId(userId);
 
-        TouristicPlace savedPlace = new TouristicPlace(place.getName(), place.getDescription(), place.getRegion(), user, true);
-        savedPlace.setId(UUID.randomUUID());
+        TouristicPlace savedPlace = new TouristicPlace(place.getName(), place.getDescription(), place.getRegion(), placeCategories, user, true);
 
         List<TouristicPlaceCategory> touristicPlaceCategories = Arrays.asList(
                 new TouristicPlaceCategory(savedPlace, category),
@@ -101,6 +109,7 @@ class TouristicPlaceServiceTests {
         );
         savedPlace.setCategories(touristicPlaceCategories);
 
+        when(mapper.modelToResponseDto(any(TouristicPlace.class))).thenReturn(placeResponseDTO);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(categoryRepository.findById(1)).thenReturn(Optional.of(category));
         when(categoryRepository.findById(2)).thenReturn(Optional.of(otherCategory));
@@ -109,15 +118,15 @@ class TouristicPlaceServiceTests {
         Either<ErrorDto[], TouristicPlaceResponseDTO> result = service.create(placeRequestDTO, userId);
 
         assertTrue(result.isRight());
-        TouristicPlaceResponseDTO responseDTO = result.get();
-        assertEquals(savedPlace.getId(), responseDTO.getId());
-        assertEquals(savedPlace.getName(), responseDTO.getName());
-        assertEquals(savedPlace.getDescription(), responseDTO.getDescription());
-        assertEquals(savedPlace.getRegion(), responseDTO.getRegion());
-        assertEquals(2, responseDTO.getCategoryDTOs().size());
-        assertTrue(responseDTO.getCategoryDTOs().stream().anyMatch(dto -> dto.getName().equals("Playa")));
-        assertTrue(responseDTO.getCategoryDTOs().stream().anyMatch(dto -> dto.getName().equals("Ciudad")));
-        assertEquals(savedPlace.getEnabled(), responseDTO.getEnabled());
+        TouristicPlaceResponseDTO resultDto = result.get();
+        assertEquals(placeResponseDTO.id(), resultDto.id());
+        assertEquals(placeResponseDTO.name(), resultDto.name());
+        assertEquals(placeResponseDTO.description(), resultDto.description());
+        assertEquals(placeResponseDTO.region(), resultDto.region());
+        assertEquals(2, resultDto.categoryDTOs().size());
+        assertTrue(resultDto.categoryDTOs().stream().anyMatch(dto -> dto.name().equals("Playa")));
+        assertTrue(resultDto.categoryDTOs().stream().anyMatch(dto -> dto.name().equals("Ciudad")));
+        assertEquals(placeResponseDTO.enabled(), resultDto.enabled());
 
         verify(userRepository).findById(userId);
         verify(categoryRepository, times(2)).findById(anyInt());
@@ -135,8 +144,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CREATE_TOURISTIC_PLACE, errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CREATE_TOURISTIC_PLACE, errors[0].message());
 
         verify(userRepository).findById(userId);
         verify(repository, never()).save(any(TouristicPlace.class));
@@ -157,8 +166,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].message());
 
         verify(userRepository).findById(userId);
         verify(categoryRepository).findById(1);
@@ -169,6 +178,7 @@ class TouristicPlaceServiceTests {
     @DisplayName("Update Touristic Place - Success")
     void updateSuccess() {
         UUID placeId = placeRequestDTO.getId();
+        when(mapper.modelToResponseDto(any(TouristicPlace.class))).thenReturn(placeResponseDTO);
         when(repository.findById(placeId)).thenReturn(Optional.of(place));
         when(categoryRepository.findById(1)).thenReturn(Optional.of(category));
         when(categoryRepository.findById(2)).thenReturn(Optional.of(otherCategory));
@@ -178,10 +188,10 @@ class TouristicPlaceServiceTests {
 
         assertTrue(result.isRight());
         TouristicPlaceResponseDTO responseDTO = result.get();
-        assertEquals(placeResponseDTO.getName(), responseDTO.getName());
-        assertEquals(placeResponseDTO.getDescription(), responseDTO.getDescription());
-        assertEquals(placeResponseDTO.getRegion(), responseDTO.getRegion());
-        assertEquals(placeResponseDTO.getCategoryDTOs().size(), responseDTO.getCategoryDTOs().size());
+        assertEquals(placeResponseDTO.name(), responseDTO.name());
+        assertEquals(placeResponseDTO.description(), responseDTO.description());
+        assertEquals(placeResponseDTO.region(), responseDTO.region());
+        assertEquals(placeResponseDTO.categoryDTOs().size(), responseDTO.categoryDTOs().size());
 
         verify(repository).findById(placeId);
         verify(categoryRepository, times(2)).findById(anyInt());
@@ -199,8 +209,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals("Error to delete touristic place", errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals("Error to delete touristic place", errors[0].message());
 
         verify(repository).findById(placeId);
         verify(repository, never()).save(any(TouristicPlace.class));
@@ -218,8 +228,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_CATEGORY_NOT_FOUND, errors[0].message());
 
         verify(repository).findById(placeId);
         verify(categoryRepository).findById(1);
@@ -229,9 +239,13 @@ class TouristicPlaceServiceTests {
     @Test
     @DisplayName("Find All Touristic Places - Success")
     void findAllSuccess() {
-        List<TouristicPlace> placeList = Arrays.asList(place, new TouristicPlace("Montevideo", "Capital city", Region.SOUTH, new User(), true));
+        List<TouristicPlace> placeList = Arrays.asList(place, new TouristicPlace("Montevideo", "Capital city", Region.SOUTH, placeCategories, new User(), true));
         Page<TouristicPlace> page = new PageImpl<>(placeList, pageable, placeList.size());
+        TouristicPlaceResponseDTO dto1 = placeResponseDTO;
+        TouristicPlaceResponseDTO dto2 = new TouristicPlaceResponseDTO(UUID.randomUUID(),placeList.getLast().getName(), placeList.getLast().getDescription(), placeList.getLast().getRegion(), List.of(categoryDto, otherCategoryDto), placeList.getLast().getEnabled());
 
+        when(mapper.modelToResponseDto(placeList.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(placeList.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findAll(pageable)).thenReturn(page);
 
@@ -253,7 +267,7 @@ class TouristicPlaceServiceTests {
         assertEquals(2, responsePage.getTotalElements());
         assertEquals(1, responsePage.getTotalPages());
         assertEquals(2, responsePage.getContent().size());
-        assertEquals(place.getName(), responsePage.getContent().getFirst().getName());
+        assertEquals(place.getName(), responsePage.getContent().getFirst().name());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository).findAll(pageable);
@@ -269,8 +283,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURISTIC_PLACE, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURISTIC_PLACE, errors[0].message());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository, never()).findAll(any(Pageable.class));
@@ -303,9 +317,9 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, errors[0].getMessage());
-        assertEquals("Invalid Id", errors[0].getDetail());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, errors[0].message());
+        assertEquals("Invalid Id", errors[0].detail());
     }
 
     @Test
@@ -320,16 +334,15 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, errors[0].getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, errors[0].message());
     }
 
     @Test
     @DisplayName("Get Touristic Place By Id - Success")
     void getByIdSuccess() {
-        UUID id = UUID.randomUUID();
-        place.setId(id);
-        when(repository.findById(id)).thenReturn(Optional.of(place));
+        when(mapper.modelToResponseDto(any(TouristicPlace.class))).thenReturn(placeResponseDTO);
+        when(repository.findById(placeResponseDTO.id())).thenReturn(Optional.of(place));
 
         List<TouristicPlaceCategory> touristicPlaceCategories = Arrays.asList(
                 new TouristicPlaceCategory(place, category),
@@ -338,16 +351,16 @@ class TouristicPlaceServiceTests {
 
         place.setCategories(touristicPlaceCategories);
 
-        Either<ErrorDto[], TouristicPlaceResponseDTO> result = service.getById(id);
+        Either<ErrorDto[], TouristicPlaceResponseDTO> result = service.getById(placeResponseDTO.id());
 
         assertTrue(result.isRight());
         TouristicPlaceResponseDTO responseDTO = result.get();
-        assertEquals(id, responseDTO.getId());
-        assertEquals(place.getName(), responseDTO.getName());
-        assertEquals(place.getDescription(), responseDTO.getDescription());
-        assertEquals(place.getRegion(), responseDTO.getRegion());
-        assertEquals(place.getEnabled(), responseDTO.getEnabled());
-        verify(repository).findById(id);
+        assertEquals(placeResponseDTO.id(), responseDTO.id());
+        assertEquals(placeResponseDTO.name(), responseDTO.name());
+        assertEquals(placeResponseDTO.description(), responseDTO.description());
+        assertEquals(placeResponseDTO.region(), responseDTO.region());
+        assertEquals(placeResponseDTO.enabled(), responseDTO.enabled());
+        verify(repository).findById(placeResponseDTO.id());
     }
 
     @Test
@@ -374,8 +387,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
         verify(repository).findById(id);
     }
 
@@ -384,13 +397,12 @@ class TouristicPlaceServiceTests {
     void findByNameSuccess() {
         String name = "Beach";
         List<TouristicPlace> placeList = Arrays.asList(
-                new TouristicPlace("Beach Resort", "Beautiful beach resort", Region.EAST, new User(), true),
-                new TouristicPlace("Beach Hotel", "Luxurious beach hotel", Region.SOUTH, new User(), true)
+                new TouristicPlace("Beach Resort", "Beautiful beach resort", Region.EAST, placeCategories, new User(), true),
+                new TouristicPlace("Beach Hotel", "Luxurious beach hotel", Region.SOUTH, placeCategories, new User(), true)
         );
         Page<TouristicPlace> placePage = new PageImpl<>(placeList, pageable, placeList.size());
-
-        when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
-        when(repository.findByNameStartingWithIgnoreCase(name, pageable)).thenReturn(placePage);
+        TouristicPlaceResponseDTO dto1 = new TouristicPlaceResponseDTO(UUID.randomUUID(),placeList.getFirst().getName(), placeList.getFirst().getDescription(), placeList.getFirst().getRegion(), List.of(categoryDto, otherCategoryDto), placeList.getFirst().getEnabled());;
+        TouristicPlaceResponseDTO dto2 = new TouristicPlaceResponseDTO(UUID.randomUUID(),placeList.getLast().getName(), placeList.getLast().getDescription(), placeList.getLast().getRegion(), List.of(categoryDto, otherCategoryDto), placeList.getLast().getEnabled());
 
         List<TouristicPlaceCategory> touristicPlaceCategories = Arrays.asList(
                 new TouristicPlaceCategory(placeList.getFirst(), category),
@@ -403,6 +415,11 @@ class TouristicPlaceServiceTests {
         placeList.getFirst().setCategories(touristicPlaceCategories);
         placeList.getLast().setCategories(touristicPlaceCategories2);
 
+        when(mapper.modelToResponseDto(placeList.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(placeList.getLast())).thenReturn(dto2);
+        when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
+        when(repository.findByNameStartingWithIgnoreCase(name, pageable)).thenReturn(placePage);
+
         Either<ErrorDto[], Page<TouristicPlaceResponseDTO>> result = service.findByName(name, pageableRequest);
 
         assertTrue(result.isRight());
@@ -410,8 +427,8 @@ class TouristicPlaceServiceTests {
         assertEquals(2, responsePage.getTotalElements());
         assertEquals(1, responsePage.getTotalPages());
         assertEquals(2, responsePage.getContent().size());
-        assertTrue(responsePage.getContent().get(0).getName().startsWith("Beach"));
-        assertTrue(responsePage.getContent().get(1).getName().startsWith("Beach"));
+        assertTrue(responsePage.getContent().get(0).name().startsWith("Beach"));
+        assertTrue(responsePage.getContent().get(1).name().startsWith("Beach"));
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository).findByNameStartingWithIgnoreCase(name, pageable);
@@ -428,8 +445,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository, never()).findByNameStartingWithIgnoreCase(anyString(), any(Pageable.class));
@@ -440,10 +457,13 @@ class TouristicPlaceServiceTests {
     void findByRegionSuccess() {
         Region region = Region.EAST;
         List<TouristicPlace> placeList = Arrays.asList(
-                new TouristicPlace("East Resort", "Beautiful east resort", Region.EAST, new User(), true),
-                new TouristicPlace("East Hotel", "Luxurious east hotel", Region.EAST, new User(), true)
+                new TouristicPlace("East Resort", "Beautiful east resort", Region.EAST, placeCategories, new User(), true),
+                new TouristicPlace("East Hotel", "Luxurious east hotel", Region.EAST, placeCategories, new User(), true)
         );
         Page<TouristicPlace> placePage = new PageImpl<>(placeList, pageable, placeList.size());
+        TouristicPlaceResponseDTO dto1 = placeResponseDTO;
+        TouristicPlaceResponseDTO dto2 = new TouristicPlaceResponseDTO(UUID.randomUUID(),placeList.getLast().getName(), placeList.getLast().getDescription(), placeList.getLast().getRegion(), List.of(categoryDto, otherCategoryDto), placeList.getLast().getEnabled());
+
 
         List<TouristicPlaceCategory> touristicPlaceCategories = Arrays.asList(
                 new TouristicPlaceCategory(placeList.getFirst(), category),
@@ -456,6 +476,8 @@ class TouristicPlaceServiceTests {
         placeList.getFirst().setCategories(touristicPlaceCategories);
         placeList.getLast().setCategories(touristicPlaceCategories2);
 
+        when(mapper.modelToResponseDto(placeList.getFirst())).thenReturn(dto1);
+        when(mapper.modelToResponseDto(placeList.getLast())).thenReturn(dto2);
         when(pageService.createSortedPageable(pageableRequest)).thenReturn(pageable);
         when(repository.findByRegion(region, pageable)).thenReturn(placePage);
 
@@ -466,8 +488,8 @@ class TouristicPlaceServiceTests {
         assertEquals(2, responsePage.getTotalElements());
         assertEquals(1, responsePage.getTotalPages());
         assertEquals(2, responsePage.getContent().size());
-        assertEquals(Region.EAST, responsePage.getContent().get(0).getRegion());
-        assertEquals(Region.EAST, responsePage.getContent().get(1).getRegion());
+        assertEquals(Region.EAST, responsePage.getContent().get(0).region());
+        assertEquals(Region.EAST, responsePage.getContent().get(1).region());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository).findByRegion(region, pageable);
@@ -484,8 +506,8 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.NOT_FOUND, errors[0].getCode());
-        assertEquals(MessageConstants.NULL_ID, errors[0].getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, errors[0].code());
+        assertEquals(MessageConstants.NULL_ID, errors[0].message());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository, never()).findByRegion(any(Region.class), any(Pageable.class));
@@ -503,9 +525,9 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURISTIC_PLACE, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURISTIC_PLACE, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository).findByNameStartingWithIgnoreCase(anyString(), any(Pageable.class));
@@ -523,9 +545,9 @@ class TouristicPlaceServiceTests {
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
         assertEquals(1, errors.length);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(MessageConstants.ERROR_GET_TOURISTIC_PLACE, errors[0].getMessage());
-        assertEquals("Unexpected error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(MessageConstants.ERROR_GET_TOURISTIC_PLACE, errors[0].message());
+        assertEquals("Unexpected error", errors[0].detail());
 
         verify(pageService).createSortedPageable(pageableRequest);
         verify(repository).findByRegion(any(Region.class), any(Pageable.class));

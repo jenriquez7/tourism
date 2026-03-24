@@ -2,8 +2,15 @@ server:
   port: 8080
 
 spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
   application:
-    name: domain
+    name: tourism-services
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   jpa:
     database: postgresql
     show-sql: true
@@ -12,16 +19,22 @@ spring:
       ddl-auto: update
       cache:
         use_second_level_cache: false
-  datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://db:5432/tourism?characterEncoding=UTF-8
-    username: postgres
-    password: india
+
+
+aws:
+  region: us-east-2
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+  sqs:
+    queue:
+      name: bookings-dev
+      url: ${AWS_SQS_QUEUE_URL}
 
 encrypt:
-  password: SHDi3ur9adaojwSPOR#DJPj3orJSDIEWAJRI3jSD3r03jfs0#R)Ojedfjw0
+  password: ${ENCRYPT_PASSWORD}
 
 session:
-  client-secret: b5aLx87-W2AekkMnvtPAz2ejcydyLDSwfUmILlxb0KegHksAP5eqf5k54WUzd89u
+  client-secret: ${SESSION_CLIENT_SECRET}
   access-token-expiration-time: 15
   refresh-token-expiration-time: 7

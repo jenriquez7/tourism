@@ -20,7 +20,7 @@
 *.rar
 
 # Intellij
-.idea/
+*.idea/
 *.iml
 *.iws
 
@@ -47,3 +47,4 @@ dependency-reduced-pom.xml
 README.html
 .idea
 .exercism
+.env

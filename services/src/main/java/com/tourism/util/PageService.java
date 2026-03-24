@@ -13,8 +13,12 @@ import java.util.List;
 public class PageService {
 
     public Pageable createSortedPageable(PageableRequest paging) {
+        if (paging.getSort() == null || paging.getSort().length == 0) {
+            return PageRequest.of(paging.getPage(), paging.getSize());
+        }
         List<Sort.Order> orders = Arrays.stream(paging.getSort())
-                .map(field -> new Sort.Order(paging.getSortType(), field)).toList();
+                .map(field -> new Sort.Order(paging.getSortType(), field))
+                .toList();
         return PageRequest.of(paging.getPage(), paging.getSize(), Sort.by(orders));
     }
 }

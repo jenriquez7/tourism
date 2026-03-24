@@ -25,6 +25,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,7 +62,7 @@ class AuthServiceTests {
         user.setEmail("test@example.com");
         user.setPassword("hashedPassword");
 
-        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(user);
+        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(Optional.of(user));
         when(encryptionService.checkPassword(authUserDto.getPassword(), user.getPassword())).thenReturn(true);
         when(jwtTokenProvider.generateAccessToken(user)).thenReturn("accessToken");
         when(jwtTokenProvider.generateRefreshToken(user)).thenReturn("refreshToken");
@@ -84,15 +85,15 @@ class AuthServiceTests {
         user.setEmail("test@example.com");
         user.setPassword("hashedPassword");
 
-        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(user);
+        when(userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true)).thenReturn(Optional.of(user));
         when(encryptionService.checkPassword(authUserDto.getPassword(), user.getPassword())).thenReturn(false);
 
         Either<ErrorDto[], Map<String, String>> result = authService.login(authUserDto);
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].message());
         verify(loginRepository).save(any(Login.class));
     }
 
@@ -107,9 +108,9 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].getCode());
-        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].getMessage());
-        assertEquals("Database error", errors[0].getDetail());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, errors[0].code());
+        assertEquals(ErrorsCode.LOGIN_FAILED.name(), errors[0].message());
+        assertEquals("Database error", errors[0].detail());
         verify(loginRepository).save(any(Login.class));
     }
 
@@ -142,8 +143,8 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals(ErrorsCode.LOGOUT_FAILED.name(), errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals(ErrorsCode.LOGOUT_FAILED.name(), errors[0].message());
     }
 
     @Test
@@ -179,8 +180,8 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("INVALID_REFRESH_TOKEN", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("INVALID_REFRESH_TOKEN", errors[0].message());
     }
 
     @Test
@@ -196,7 +197,7 @@ class AuthServiceTests {
 
         assertTrue(result.isLeft());
         ErrorDto[] errors = result.getLeft();
-        assertEquals(HttpStatus.BAD_REQUEST, errors[0].getCode());
-        assertEquals("INVALID_REFRESH_TOKEN", errors[0].getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, errors[0].code());
+        assertEquals("INVALID_REFRESH_TOKEN", errors[0].message());
     }
 }

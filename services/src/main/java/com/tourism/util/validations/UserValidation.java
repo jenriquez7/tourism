@@ -21,37 +21,37 @@ public class UserValidation {
         List<ErrorDto> errors = new ArrayList<>();
         Pattern pattern = Pattern.compile(EMAIL_REGEX);
         if (email == null || email.isEmpty()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_EMPTY_EMAIL));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_EMPTY_EMAIL));
             return Either.left(errors.toArray(new ErrorDto[0]));
         }
 
         if (!pattern.matcher(email).matches()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_EMAIL_FORMAT));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_EMAIL_FORMAT));
         }
 
         if (password == null || password.isEmpty()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_REQUIRED_PASSWORD));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_REQUIRED_PASSWORD));
             return Either.left(errors.toArray(new ErrorDto[0]));
         }
 
         if (password.length() < 8 || password.length() > 30) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_LENGTH));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_LENGTH));
         }
 
         if (!Pattern.compile("[A-Z]").matcher(password).find()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_UPPERCASE));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_UPPERCASE));
         }
 
         if (!Pattern.compile("[a-z]").matcher(password).find()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_LOWERCASE));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_LOWERCASE));
         }
 
         if (!Pattern.compile("\\d").matcher(password).find()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_NUMBER));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_NUMBER));
         }
 
         if (!Pattern.compile("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]").matcher(password).find()) {
-            errors.add(new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_SPECIAL_CHARACTER));
+            errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_PASSWORD_SPECIAL_CHARACTER));
         }
         return errors.isEmpty() ? Either.right(true) : Either.left(errors.toArray(new ErrorDto[0]));
     }

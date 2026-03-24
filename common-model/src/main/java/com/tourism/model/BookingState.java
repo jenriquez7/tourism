@@ -6,4 +6,5 @@ public enum BookingState {
     ACCEPTED,
     REJECTED,
     EXPIRED,
+    UNAVAILABLE
 }

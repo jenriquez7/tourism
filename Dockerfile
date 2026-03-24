@@ -1,21 +1,37 @@
-# Stage 1: Build common-model
-FROM maven:3.9.6-eclipse-temurin-22 AS common-model-build
-WORKDIR /app/common-model
-COPY common-model/pom.xml .
-COPY common-model/src ./src
-RUN mvn clean install
+# Dockerfile
+FROM maven:3.9.6-eclipse-temurin-22 AS build
 
-# Stage 2: Build services
-FROM maven:3.9.6-eclipse-temurin-22 AS services-build
-WORKDIR /app/services
-COPY services/pom.xml .
-COPY --from=common-model-build /root/.m2 /root/.m2
-RUN mvn dependency:go-offline
-COPY services/src ./src
-RUN mvn package -DskipTests
-
-# Stage 3: Run services
-FROM eclipse-temurin:22-jre-jammy
 WORKDIR /app
-COPY --from=services-build /app/services/target/*.jar app.jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Copy root POM
+COPY pom.xml .
+
+# Copy checkstyle if exists
+COPY checkstyle.xml ./checkstyle.xml
+
+# Copy module POMs
+COPY common-model/pom.xml common-model/
+COPY services/pom.xml services/
+
+# Download dependencies
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY common-model/ common-model/
+COPY services/ services/
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Stage 2: Runtime
+FROM eclipse-temurin:22-jre-jammy
+
+WORKDIR /app
+
+# Copy the built artifact
+COPY --from=build /app/services/target/*.jar app.jar
+
+# Expose port
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

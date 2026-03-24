@@ -1,0 +1,84 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY: tourism-app
+  EC2_APP_NAME: tourism-app-server
+  AWS_SQS_QUEUE_NAME: bookings-prod
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,AWS_REGION
+          script: |
+            mkdir -p ~/${{ env.EC2_APP_NAME }}
+            cd ~/${{ env.EC2_APP_NAME }}
+            
+            # Login to ECR
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            
+            # Pull y ejecutar la nueva imagen
+            docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            docker stop ${{ env.EC2_APP_NAME }} || true
+            docker rm ${{ env.EC2_APP_NAME }} || true
+            docker run -d \
+              --name ${{ env.EC2_APP_NAME }} \
+              -p 8080:8080 \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              -e AWS_REGION=${{ env.AWS_REGION }} \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -e AWS_SQS_QUEUE_URL=${{ secrets.AWS_SQS_QUEUE_URL }} \
+              -e RDS_HOSTNAME=${{ secrets.RDS_HOSTNAME }} \
+              -e RDS_PORT=${{ secrets.RDS_PORT }} \
+              -e RDS_DB_NAME=${{ secrets.RDS_DB_NAME }} \
+              -e RDS_USERNAME=${{ secrets.RDS_USERNAME }} \
+              -e RDS_PASSWORD=${{ secrets.RDS_PASSWORD }} \
+              -e ENCRYPT_PASSWORD=${{ secrets.ENCRYPT_PASSWORD }} \
+              -e SESSION_CLIENT_SECRET=${{ secrets.SESSION_CLIENT_SECRET }} \
+              ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            
+            docker image prune -af

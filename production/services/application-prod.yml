@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${RDS_HOSTNAME}:${RDS_PORT}/${RDS_DB_NAME}
+    username: ${RDS_USERNAME}
+    password: ${RDS_PASSWORD}
+  application:
+    name: tourism-services
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+        hbm2ddl:
+          auto: create-drop
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        transaction:
+          jta:
+            platform: org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform
+
+aws:
+  region: ${AWS_REGION}
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+  sqs:
+    queue:
+      name: bookings-prod
+      url: ${AWS_SQS_QUEUE_URL}
+
+logging:
+  level:
+    root: INFO
+    com.tourism: DEBUG
+    org.hibernate: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+    org.springframework.transaction: TRACE
+    org.springframework.orm.jpa: DEBUG

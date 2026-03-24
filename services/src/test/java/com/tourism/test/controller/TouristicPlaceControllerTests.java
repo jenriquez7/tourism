@@ -194,10 +194,10 @@ class TouristicPlaceControllerTests {
         assertInstanceOf(TouristicPlaceResponseDTO.class, data[0]);
 
         TouristicPlaceResponseDTO responseDto = (TouristicPlaceResponseDTO) data[0];
-        assertEquals(placeResponseDTO.getId(), responseDto.getId());
-        assertEquals(placeResponseDTO.getName(), responseDto.getName());
-        assertEquals(placeResponseDTO.getRegion(), responseDto.getRegion());
-        assertEquals(placeResponseDTO.getDescription(), responseDto.getDescription());
+        assertEquals(placeResponseDTO.id(), responseDto.id());
+        assertEquals(placeResponseDTO.name(), responseDto.name());
+        assertEquals(placeResponseDTO.region(), responseDto.region());
+        assertEquals(placeResponseDTO.description(), responseDto.description());
     }
 
     private void verifyPageTouristicPlaceResponseDto(ResponseEntity<StandardResponseDto<Page<TouristicPlaceResponseDTO>>> response) {
@@ -215,9 +215,9 @@ class TouristicPlaceControllerTests {
         assertEquals(1, resultPage.getContent().size());
 
         TouristicPlaceResponseDTO resultPlace = resultPage.getContent().getFirst();
-        assertEquals(placeResponseDTO.getId(), resultPlace.getId());
-        assertEquals(placeResponseDTO.getName(), resultPlace.getName());
-        assertEquals(placeResponseDTO.getDescription(), resultPlace.getDescription());
-        assertEquals(placeResponseDTO.getRegion(), resultPlace.getRegion());
+        assertEquals(placeResponseDTO.id(), resultPlace.id());
+        assertEquals(placeResponseDTO.name(), resultPlace.name());
+        assertEquals(placeResponseDTO.description(), resultPlace.description());
+        assertEquals(placeResponseDTO.region(), resultPlace.region());
     }
 }

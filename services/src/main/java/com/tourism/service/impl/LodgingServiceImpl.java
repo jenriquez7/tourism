@@ -1,5 +1,7 @@
 package com.tourism.service.impl;
 
+import com.tourism.dto.mappers.LodgingMapper;
+import com.tourism.dto.request.LodgingRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.LodgingResponseDTO;
@@ -10,6 +12,7 @@ import com.tourism.util.MessageConstants;
 import com.tourism.util.PageService;
 import com.tourism.util.validations.BookingValidation;
 import io.vavr.control.Either;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,6 +35,7 @@ public class LodgingServiceImpl implements LodgingService {
     private final BookingValidation bookingValidation;
     private final BookingDateRepository bookingDateRepository;
     private final PageService pageService;
+    private final LodgingMapper mapper;
 
     @Autowired
     public LodgingServiceImpl(LodgingRepository repository,
@@ -39,29 +43,33 @@ public class LodgingServiceImpl implements LodgingService {
                               LodgingOwnerRepository ownerRepository,
                               BookingValidation bookingValidation,
                               BookingDateRepository bookingDateRepository,
-                              PageService pageService) {
+                              PageService pageService,
+                              LodgingMapper mapper) {
         this.repository = repository;
         this.placeRepository = placeRepository;
         this.ownerRepository = ownerRepository;
         this.bookingValidation = bookingValidation;
         this.bookingDateRepository = bookingDateRepository;
         this.pageService = pageService;
+        this.mapper = mapper;
     }
 
 
     @Override
-    public Either<ErrorDto[], LodgingResponseDTO> create(Lodging lodging, UUID ownerId) {
+    public Either<ErrorDto[], LodgingResponseDTO> create(LodgingRequestDTO requestDto, UUID ownerId) {
         try {
-            TouristicPlace place = placeRepository.findById(lodging.getTouristicPlace().getId()).orElse(null);
-            LodgingOwner lodgingOwner = ownerRepository.findById(ownerId).orElse(null);
-            lodging.setTouristicPlace(Objects.requireNonNull(place));
-            lodging.setLodgingOwner(Objects.requireNonNull(lodgingOwner));
-            lodging.setEnabled(true);
-            return Either.right(LodgingResponseDTO.lodgingToResponseDTO(repository.save(lodging)));
-        } catch (DataIntegrityViolationException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
+            TouristicPlace place = placeRepository.findById(requestDto.touristicPlaceId()).orElseThrow(
+                    () -> new EntityNotFoundException("Touristic Place not found with id: " + requestDto.touristicPlaceId()));
+            LodgingOwner owner = ownerRepository.findById(ownerId).orElseThrow(
+                    () -> new EntityNotFoundException("Lodging Owner not found with id: " + ownerId));
+            Lodging lodging = mapper.requestDtoToModel(requestDto, place, owner, true);
+            return Either.right(mapper.modelToResponseDto(repository.save(lodging)));
+        } catch (DataIntegrityViolationException | EntityNotFoundException e) {
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
         } catch (Exception e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_NOT_CREATED, e.getMessage())});
         }
     }
 
@@ -73,20 +81,22 @@ public class LodgingServiceImpl implements LodgingService {
 
             if (lodging != null && lodging.getLodgingOwner().equals(lodgingOwner)) {
                 LocalDate lastBookingDate = bookingDateRepository.findLastBookingDateByLodgingAndState(lodging, BookingState.ACCEPTED);
-                if (lastBookingDate != null && bookingValidation.invalidLodgingCapacityVsBookings(0, 0, 0, LocalDate.now(), lastBookingDate, lodgingDTO)) {
-                    return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_FULL_CAPACITY)});
+                if (lastBookingDate != null && !bookingValidation.validLodgingCapacityVsBookings(0, 0, 0, LocalDate.now(), lastBookingDate, lodgingDTO)) {
+                    return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_FULL_CAPACITY)});
                 }
 
                 TouristicPlace place = placeRepository.findById(lodging.getTouristicPlace().getId()).orElse(null);
                 lodging.updateLodgingFromDTO(lodgingDTO, place);
-                return Either.right(LodgingResponseDTO.lodgingToResponseDTO(repository.save(lodging)));
+                return Either.right(mapper.modelToResponseDto(repository.save(lodging)));
             } else {
-                return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_LODGING_OWNER)});
+                return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_LODGING_OWNER)});
             }
         } catch (DataIntegrityViolationException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_UPDATED, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_ACCEPTABLE, MessageConstants.ERROR_LODGING_NOT_UPDATED, e.getMessage())});
         } catch (Exception e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_NOT_UPDATED, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_LODGING_NOT_UPDATED, e.getMessage())});
         }
     }
 
@@ -95,9 +105,10 @@ public class LodgingServiceImpl implements LodgingService {
         try {
             Pageable pageable = pageService.createSortedPageable(paging);
             Page<Lodging> lodgings = repository.findAll(pageable);
-            return Either.right(lodgings.map(LodgingResponseDTO::lodgingToResponseDTO));
+            return Either.right(lodgings.map(mapper::modelToResponseDto));
         } catch (Exception e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
         }
     }
 
@@ -108,11 +119,14 @@ public class LodgingServiceImpl implements LodgingService {
             repository.delete(Objects.requireNonNull(lodging));
             return Either.right(null);
         } catch (NoSuchElementException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, "Touristic Place not found")});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_TOURISTIC_PLACE, "Touristic Place not found")});
         } catch (InvalidDataAccessApiUsageException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_LODGING, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_LODGING, e.getMessage())});
         } catch (Exception e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_LODGING, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_DELETING_LODGING, e.getMessage())});
         }
     }
 
@@ -120,11 +134,13 @@ public class LodgingServiceImpl implements LodgingService {
     public Either<ErrorDto[], LodgingResponseDTO> getById(UUID id) {
         try {
             Lodging lodging = repository.findById(id).orElse(null);
-            return Either.right(lodging != null ? LodgingResponseDTO.lodgingToResponseDTO(lodging) : null);
+            return Either.right(lodging != null ? mapper.modelToResponseDto(lodging) : null);
         } catch (InvalidDataAccessApiUsageException e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID)});
         } catch (Exception e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
         }
     }
 
@@ -134,9 +150,10 @@ public class LodgingServiceImpl implements LodgingService {
             Pageable pageable = pageService.createSortedPageable(paging);
             TouristicPlace place = placeRepository.findById(id).orElse(null);
             Page<Lodging> lodgings = repository.findByTouristicPlace(place, pageable);
-            return Either.right(lodgings.map(LodgingResponseDTO::lodgingToResponseDTO));
+            return Either.right(lodgings.map(mapper::modelToResponseDto));
         } catch (Exception e) {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
+            log.error(e.getMessage());
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_GET_LODGINGS, e.getMessage())});
         }
     }
 }

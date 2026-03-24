@@ -1,14 +1,16 @@
 package com.tourism.dto.request;
 
+import com.tourism.validation.ValidSortDirection;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import org.springframework.data.domain.Sort;
+import org.springframework.validation.annotation.Validated;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Validated
 public class PageableRequest {
 
     @Min(0)
@@ -20,6 +22,6 @@ public class PageableRequest {
 
     private String[] sort;
 
-    @Pattern(regexp = "^(ASC|DESC)$", message = "Sort type must be either ASC or DESC")
+    @ValidSortDirection
     private Sort.Direction sortType = Sort.Direction.ASC;
 }

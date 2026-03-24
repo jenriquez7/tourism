@@ -13,7 +13,7 @@ import com.tourism.repository.UserRepository;
 import com.tourism.service.AuthService;
 import com.tourism.util.ErrorsCode;
 import com.tourism.util.MessageConstants;
-import groovy.util.logging.Slf4j;
+import lombok.extern.slf4j.Slf4j;
 import io.vavr.control.Either;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -47,18 +48,18 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Either<ErrorDto[], Map<String, String>> login(AuthUserDto authUserDto) {
         try {
-            User user = userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true);
-            if (user == null) {
+            Optional<User> user = userRepository.findByEmailAndEnabled(authUserDto.getEmail(), true);
+            if (user.isEmpty()) {
                 loginRepository.save(new Login(authUserDto.getEmail(), false));
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.LOGIN_FAILED.name(), MessageConstants.ERROR_INCORRECT_USER_OR_PASSWORD)});
             }
 
-            if (Boolean.TRUE.equals(encryptionService.checkPassword(authUserDto.getPassword(), user.getPassword()))) {
+            if (Boolean.TRUE.equals(encryptionService.checkPassword(authUserDto.getPassword(), user.get().getPassword()))) {
                 loginRepository.save(new Login(authUserDto.getEmail(), true));
-                String accessToken = jwtTokenProvider.generateAccessToken(user);
-                String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+                String accessToken = jwtTokenProvider.generateAccessToken(user.get());
+                String refreshToken = jwtTokenProvider.generateRefreshToken(user.get());
 
-                refreshTokenRepository.save(new RefreshToken(refreshToken, user));
+                refreshTokenRepository.save(new RefreshToken(refreshToken, user.get()));
 
                 Map<String, String> tokens = new HashMap<>();
                 tokens.put("accessToken", accessToken);
@@ -70,6 +71,7 @@ public class AuthServiceImpl implements AuthService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.LOGIN_FAILED.name(), MessageConstants.ERROR_INCORRECT_USER_OR_PASSWORD)});
             }
         } catch (Exception e) {
+            log.info(e.getMessage());
             loginRepository.save(new Login(authUserDto.getEmail(), false));
             return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, ErrorsCode.LOGIN_FAILED.name(), e.getMessage())});
         }
@@ -99,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
                 return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.INVALID_REFRESH_TOKEN.name(), MessageConstants.ERROR_REFRESH_TOKEN_NOT_FOUND)});
             }
         } else {
-            return Either.left(new ErrorDto[]{new ErrorDto(HttpStatus.BAD_REQUEST, ErrorsCode.INVALID_REFRESH_TOKEN.name())});
+            return Either.left(new ErrorDto[]{ErrorDto.of(HttpStatus.BAD_REQUEST, ErrorsCode.INVALID_REFRESH_TOKEN.name())});
         }
     }
 
