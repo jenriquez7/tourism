@@ -62,7 +62,7 @@ class TouristControllerTests {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        touristRequestDTO = new TouristRequestDTO("Turista", "Verano", "tverano@email.com", "12345678");
+        touristRequestDTO = new TouristRequestDTO("Turista", "Verano", "tverano@email.com", "12345678", TouristType.STANDARD);
         touristResponseDTO = new TouristResponseDTO(userId, "tverano@email.com", "Turista", "Verano");
         tourist = new Tourist("tverano@email.com", "12345678", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
     }

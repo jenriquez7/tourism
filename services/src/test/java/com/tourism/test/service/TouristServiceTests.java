@@ -80,7 +80,7 @@ class TouristServiceTests {
 
     @BeforeEach
     void setUp() {
-        validRequestDTO = new TouristRequestDTO("Turista", "Verano","tverano@email.com", "validPassword123");
+        validRequestDTO = new TouristRequestDTO("Turista", "Verano","tverano@email.com", "validPassword123", TouristType.STANDARD);
         tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
         pageableRequest = new PageableRequest(0, 10, new String[]{"email"}, Sort.Direction.ASC);
         pageable = mock(Pageable.class);

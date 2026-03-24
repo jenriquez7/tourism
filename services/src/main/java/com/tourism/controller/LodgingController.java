@@ -1,11 +1,33 @@
 package com.tourism.controller;
 
+import java.util.UUID;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.vavr.control.Either;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.tourism.configuration.annotation.CommonApiResponses;
 import com.tourism.dto.request.LodgingRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
-import com.tourism.dto.response.StandardResponseDto;
 import com.tourism.dto.response.LodgingResponseDTO;
+import com.tourism.dto.response.StandardResponseDto;
 import com.tourism.infrastructure.JwtTokenProvider;
 import com.tourism.model.Lodging;
 import com.tourism.model.User;
@@ -13,108 +35,86 @@ import com.tourism.service.LodgingService;
 import com.tourism.util.EndpointConstants;
 import com.tourism.util.ResponseEntityUtil;
 import com.tourism.util.helpers.AuthenticationHelper;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.vavr.control.Either;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @Tag(name = "Lodging Controller", description = "Lodging API")
 @Slf4j
-@RequestMapping(path = EndpointConstants.ROOT_PATH + EndpointConstants.LODGING_PATH,
-        produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = EndpointConstants.ROOT_PATH
+      + EndpointConstants.LODGING_PATH, produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 @Validated
+@RequiredArgsConstructor
 public class LodgingController {
 
-    private final LodgingService service;
-    private final JwtTokenProvider jwtTokenProvider;
+   private final LodgingService service;
 
-    @Autowired
-    public LodgingController(LodgingService service, JwtTokenProvider jwtTokenProvider) {
-        this.service = service;
-        this.jwtTokenProvider = jwtTokenProvider;
-    }
+   private final JwtTokenProvider jwtTokenProvider;
 
+   @Operation(summary = "Create a lodging", operationId = "create")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.LODGING_OWNER_ROLE)
+   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> create(HttpServletRequest request, @RequestBody @Valid LodgingRequestDTO lodging) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      if (user != null) {
+         log.error(user.getId().toString());
+         return ResponseEntityUtil.buildObject(request, service.create(lodging, user.getId()));
+      } else {
+         return ResponseEntityUtil.buildObject(request,
+               Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to create lodging. User Not logged") }));
+      }
+   }
 
-    @Operation(summary = "Create a lodging", operationId = "create")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.LODGING_OWNER_ROLE)
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> create(HttpServletRequest request,
-                                                                          @RequestBody @Valid LodgingRequestDTO lodging) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        if (user != null) {
-            log.error(user.getId().toString());
-            return ResponseEntityUtil.buildObject(request, service.create(lodging, user.getId()));
-        } else {
-            return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to create lodging. User Not logged")}));
-        }
-    }
+   @Operation(summary = "update a lodging", operationId = "update")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE + " or " + AuthenticationHelper.LODGING_OWNER_ROLE)
+   @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> update(HttpServletRequest request, @RequestBody Lodging touristicPlaceDto) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      if (user != null) {
+         return ResponseEntityUtil.buildObject(request, service.update(touristicPlaceDto, user.getId()));
+      } else {
+         return ResponseEntityUtil.buildObject(request,
+               Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to update lodging. User Not logged") }));
+      }
+   }
 
+   @Operation(summary = "Get all lodgings", operationId = "findAll")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
+   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> findAll(HttpServletRequest request,
+         @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, service.findAll(paging));
+   }
 
-    @Operation(summary = "update a lodging", operationId = "update")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE + " or " + AuthenticationHelper.LODGING_OWNER_ROLE)
-    @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> update(HttpServletRequest request, @RequestBody Lodging touristicPlaceDto) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        if (user != null) {
-            return ResponseEntityUtil.buildObject(request, service.update(touristicPlaceDto, user.getId()));
-        } else {
-            return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to update lodging. User Not logged")}));
-        }
-    }
+   @Operation(summary = "delete a touristic place", operationId = "delete")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE + " or " + AuthenticationHelper.LODGING_OWNER_ROLE)
+   @DeleteMapping("/{id}")
+   public ResponseEntity<StandardResponseDto<Lodging>> delete(HttpServletRequest request, @PathVariable("id") UUID id) {
+      return ResponseEntityUtil.buildObject(request, service.delete(id));
+   }
 
+   @Operation(summary = "Get a lodging by id", operationId = "getById")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
+   @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
+      return ResponseEntityUtil.buildObject(request, service.getById(id));
+   }
 
-    @Operation(summary = "Get all lodgings", operationId = "findAll")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> findAll(HttpServletRequest request,
-                                                                                 @Valid @ModelAttribute PageableRequest paging) {
-        return ResponseEntityUtil.buildObject(request, service.findAll(paging));
-    }
+   @Operation(summary = "Get all lodgings by touristic places", operationId = "findAll")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
+   @GetMapping(value = "/touristic_place/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> findLodgingsByTouristicPlace(HttpServletRequest request,
+         @PathVariable("id") UUID id, @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, service.findLodgingsByTouristicPlace(id, paging));
+   }
 
-
-    @Operation(summary = "delete a touristic place", operationId = "delete")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE + " or " + AuthenticationHelper.LODGING_OWNER_ROLE)
-    @DeleteMapping("/{id}")
-    public ResponseEntity<StandardResponseDto<Lodging>> delete(HttpServletRequest request, @PathVariable("id") UUID id) {
-        return ResponseEntityUtil.buildObject(request, service.delete(id));
-    }
-
-
-    @Operation(summary = "Get a lodging by id", operationId = "getById")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<LodgingResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
-        return ResponseEntityUtil.buildObject(request, service.getById(id));
-    }
-
-
-    @Operation(summary = "Get all lodgings by touristic places", operationId = "findAll")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
-    @GetMapping(value = "/touristic_place/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> findLodgingsByTouristicPlace(HttpServletRequest request,
-                                                                                                      @PathVariable("id") UUID id,
-                                                                                                      @Valid @ModelAttribute PageableRequest paging) {
-        return ResponseEntityUtil.buildObject(request, service.findLodgingsByTouristicPlace(id, paging));
-    }
 }

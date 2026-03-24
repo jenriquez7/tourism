@@ -1,5 +1,27 @@
 package com.tourism.controller;
 
+import java.util.UUID;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.vavr.control.Either;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.tourism.configuration.annotation.CommonApiResponses;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.request.TouristRequestDTO;
@@ -13,126 +35,103 @@ import com.tourism.service.TouristService;
 import com.tourism.util.EndpointConstants;
 import com.tourism.util.ResponseEntityUtil;
 import com.tourism.util.helpers.AuthenticationHelper;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.vavr.control.Either;
+
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @Tag(name = "Tourist", description = "Tourist API")
 @Slf4j
 @RequestMapping(path = EndpointConstants.ROOT_PATH + EndpointConstants.TOURIST_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
 @Validated
+@RequiredArgsConstructor
 public class TouristController {
 
-    private final TouristService touristService;
-    private final JwtTokenProvider jwtTokenProvider;
+   private final TouristService touristService;
 
-    @Autowired
-    public TouristController(TouristService touristService, JwtTokenProvider jwtTokenProvider) {
-        this.touristService = touristService;
-        this.jwtTokenProvider = jwtTokenProvider;
-    }
+   private final JwtTokenProvider jwtTokenProvider;
 
+   @Operation(summary = "Create a tourist", operationId = "create")
+   @CommonApiResponses
+   @PermitAll
+   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<TouristResponseDTO>> create(HttpServletRequest request,
+         @RequestBody @Valid TouristRequestDTO touristDto) {
+      return ResponseEntityUtil.buildObject(request, touristService.create(touristDto));
+   }
 
-    @Operation(summary = "Create a tourist", operationId = "create")
-    @CommonApiResponses
-    @PermitAll
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<TouristResponseDTO>> create(HttpServletRequest request, @RequestBody @Valid TouristRequestDTO touristDto) {
-        return ResponseEntityUtil.buildObject(request, touristService.create(touristDto));
-    }
+   @Operation(summary = "Get all tourists", operationId = "findAll")
+   @CommonApiResponses
+   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
+   public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findAll(HttpServletRequest request,
+         @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, touristService.findAll(paging));
+   }
 
+   @Operation(summary = "delete an tourist by admin by id", operationId = "delete")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
+   @DeleteMapping("/{id}")
+   public ResponseEntity<StandardResponseDto<Tourist>> deleteByAdmin(HttpServletRequest request, @PathVariable("id") UUID id) {
+      return ResponseEntityUtil.buildObject(request, touristService.delete(id));
+   }
 
-    @Operation(summary = "Get all tourists", operationId = "findAll")
-    @CommonApiResponses
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
-    public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findAll(HttpServletRequest request,
-                                                                                 @Valid @ModelAttribute PageableRequest paging) {
-        return ResponseEntityUtil.buildObject(request, touristService.findAll(paging));
-    }
+   @Operation(summary = "delete a tourist by token", operationId = "delete")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
+   @DeleteMapping()
+   public ResponseEntity<StandardResponseDto<Tourist>> delete(HttpServletRequest request) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      if (user != null) {
+         return ResponseEntityUtil.buildObject(request, touristService.delete(user.getId()));
+      } else {
+         return ResponseEntityUtil.buildObject(request,
+               Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged") }));
+      }
+   }
 
+   @Operation(summary = "Get an admin by id", operationId = "getById")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
+   @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<TouristResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
+      return ResponseEntityUtil.buildObject(request, touristService.getById(id));
+   }
 
-    @Operation(summary = "delete an tourist by admin by id", operationId = "delete")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
-    @DeleteMapping("/{id}")
-    public ResponseEntity<StandardResponseDto<Tourist>> deleteByAdmin(HttpServletRequest request, @PathVariable("id") UUID id) {
-        return ResponseEntityUtil.buildObject(request, touristService.delete(id));
-    }
+   @Operation(summary = "delete a tourist by token", operationId = "delete")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
+   @GetMapping("/profile")
+   public ResponseEntity<StandardResponseDto<TouristResponseDTO>> profile(HttpServletRequest request) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      if (user != null) {
+         return ResponseEntityUtil.buildObject(request, touristService.getById(user.getId()));
+      } else {
+         return ResponseEntityUtil.buildObject(request,
+               Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged") }));
+      }
+   }
 
+   @Operation(summary = "Get a tourist by email", operationId = "findByEmail")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
+   @GetMapping(value = "/email", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findByEmail(HttpServletRequest request, @RequestParam("email") String email,
+         @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, touristService.findByEmail(email, paging));
+   }
 
-    @Operation(summary = "delete a tourist by token", operationId = "delete")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
-    @DeleteMapping()
-    public ResponseEntity<StandardResponseDto<Tourist>> delete(HttpServletRequest request) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        if (user != null) {
-            return ResponseEntityUtil.buildObject(request, touristService.delete(user.getId()));
-        } else {
-            return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
-        }
-    }
+   @Operation(summary = "Get a tourist by last name", operationId = "findByLastName")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
+   @GetMapping(value = "/lastName", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findByLastName(HttpServletRequest request,
+         @RequestParam("lastName") String lastName, @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, touristService.findByLastName(lastName, paging));
+   }
 
-
-    @Operation(summary = "Get an admin by id", operationId = "getById")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<TouristResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
-        return ResponseEntityUtil.buildObject(request, touristService.getById(id));
-    }
-
-
-    @Operation(summary = "delete a tourist by token", operationId = "delete")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
-    @GetMapping("/profile")
-    public ResponseEntity<StandardResponseDto<TouristResponseDTO>> profile(HttpServletRequest request) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        if (user != null) {
-            return ResponseEntityUtil.buildObject(request, touristService.getById(user.getId()));
-        } else {
-            return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to delete tourist. Not logged")}));
-        }
-    }
-
-
-    @Operation(summary = "Get a tourist by email", operationId = "findByEmail")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
-    @GetMapping(value = "/email", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findByEmail(HttpServletRequest request,
-                                                                                     @RequestParam("email") String email,
-                                                                                     @Valid @ModelAttribute PageableRequest paging) {
-        return ResponseEntityUtil.buildObject(request, touristService.findByEmail(email, paging));
-    }
-
-
-    @Operation(summary = "Get a tourist by last name", operationId = "findByLastName")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
-    @GetMapping(value = "/lastName", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<Page<TouristResponseDTO>>> findByLastName(HttpServletRequest request,
-                                                                                        @RequestParam("lastName") String lastName,
-                                                                                        @Valid @ModelAttribute PageableRequest paging) {
-        return ResponseEntityUtil.buildObject(request, touristService.findByLastName(lastName, paging));
-    }
 }

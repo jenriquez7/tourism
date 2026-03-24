@@ -1,5 +1,27 @@
 package com.tourism.controller;
 
+import java.util.UUID;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.vavr.control.Either;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.tourism.configuration.annotation.CommonApiResponses;
 import com.tourism.dto.request.BookingRequestDTO;
 import com.tourism.dto.request.BookingUpdateRequestDTO;
@@ -15,126 +37,103 @@ import com.tourism.service.BookingService;
 import com.tourism.util.EndpointConstants;
 import com.tourism.util.ResponseEntityUtil;
 import com.tourism.util.helpers.AuthenticationHelper;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.vavr.control.Either;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @Tag(name = "Booking Controller", description = "Booking API")
 @Slf4j
-@RequestMapping(path = EndpointConstants.ROOT_PATH + EndpointConstants.BOOKING_PATH,
-        produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = EndpointConstants.ROOT_PATH
+      + EndpointConstants.BOOKING_PATH, produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 @Validated
+@RequiredArgsConstructor
 public class BookingController {
 
-    private final BookingService service;
-    private final JwtTokenProvider jwtTokenProvider;
+   private final BookingService service;
 
-    @Autowired
-    public BookingController(BookingService service, JwtTokenProvider jwtTokenProvider) {
-        this.service = service;
-        this.jwtTokenProvider = jwtTokenProvider;
-    }
+   private final JwtTokenProvider jwtTokenProvider;
 
+   @Operation(summary = "Create a booking", operationId = "create")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
+   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<String>> create(HttpServletRequest request, @RequestBody @Valid BookingRequestDTO booking) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      if (user != null) {
+         return ResponseEntityUtil.buildObject(request, service.create(booking, user.getId()));
+      } else {
+         return ResponseEntityUtil.buildObject(request,
+               Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to create booking. User Not logged", null) }));
+      }
+   }
 
-    @Operation(summary = "Create a booking", operationId = "create")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<String>> create(HttpServletRequest request, @RequestBody @Valid BookingRequestDTO booking) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        if (user != null) {
-            return ResponseEntityUtil.buildObject(request, service.create(booking, user.getId()));
-        } else {
-            return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to create booking. User Not logged", null)}));
-        }
-    }
+   @Operation(summary = "update a booking", operationId = "update")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
+   @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<String>> update(HttpServletRequest request, @RequestBody BookingUpdateRequestDTO bookingDto) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      if (user != null) {
+         return ResponseEntityUtil.buildObject(request, service.update(bookingDto, user.getId()));
+      } else {
+         return ResponseEntityUtil.buildObject(request,
+               Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to update booking. User Not logged", null) }));
+      }
+   }
 
+   @Operation(summary = "Find all bookings", operationId = "findAll")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
+   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> findAll(HttpServletRequest request,
+         @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, service.findAll(paging));
+   }
 
-    @Operation(summary = "update a booking", operationId = "update")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
-    @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<String>> update(HttpServletRequest request, @RequestBody BookingUpdateRequestDTO bookingDto) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        if (user != null) {
-            return ResponseEntityUtil.buildObject(request, service.update(bookingDto, user.getId()));
-        } else {
-            return ResponseEntityUtil.buildObject(request, Either.left(new ErrorDto[]{
-                    ErrorDto.of(HttpStatus.BAD_REQUEST, "Error to update booking. User Not logged", null)}));
-        }
-    }
+   @Operation(summary = "delete a touristic place", operationId = "delete")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.ADMIN_ROLE + " or " + AuthenticationHelper.LODGING_OWNER_ROLE)
+   @DeleteMapping("/{id}")
+   public ResponseEntity<StandardResponseDto<Booking>> delete(HttpServletRequest request, @PathVariable("id") UUID id) {
+      return ResponseEntityUtil.buildObject(request, service.delete(id));
+   }
 
+   @Operation(summary = "Get a touristic place by id", operationId = "getById")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
+   @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<BookingResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
+      return ResponseEntityUtil.buildObject(request, service.getById(id));
+   }
 
-    @Operation(summary = "Find all bookings", operationId = "findAll")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE)
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> findAll(HttpServletRequest request,
-                                                                      @Valid @ModelAttribute PageableRequest paging) {
-        return ResponseEntityUtil.buildObject(request, service.findAll(paging));
-    }
+   @Operation(summary = "Lodging owner accept the booking. Is waiting for the payment", operationId = "pending")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.LODGING_OWNER_ROLE)
+   @PutMapping(value = "/pending/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<BookingResponseDTO>> pendingBooking(HttpServletRequest request, @PathVariable("id") UUID bookingId) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.PENDING, user.getId()));
+   }
 
+   @Operation(summary = "Booking payment. Booking is accepted", operationId = "payment")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
+   @PutMapping(value = "/accepted/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<BookingResponseDTO>> bookingPayment(HttpServletRequest request, @PathVariable("id") UUID bookingId) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.ACCEPTED, user.getId()));
+   }
 
-    @Operation(summary = "delete a touristic place", operationId = "delete")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.ADMIN_ROLE + " or " + AuthenticationHelper.LODGING_OWNER_ROLE)
-    @DeleteMapping("/{id}")
-    public ResponseEntity<StandardResponseDto<Booking>> delete(HttpServletRequest request, @PathVariable("id") UUID id) {
-        return ResponseEntityUtil.buildObject(request, service.delete(id));
-    }
+   @Operation(summary = "Reject the booking by lodging owner", operationId = "reject")
+   @CommonApiResponses
+   @PreAuthorize(AuthenticationHelper.LODGING_OWNER_ROLE)
+   @PutMapping(value = "/reject/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+   public ResponseEntity<StandardResponseDto<BookingResponseDTO>> rejectBooking(HttpServletRequest request, @PathVariable("id") UUID bookingId) {
+      User user = jwtTokenProvider.getUserFromToken(request);
+      return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.REJECTED, user.getId()));
+   }
 
-
-    @Operation(summary = "Get a touristic place by id", operationId = "getById")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> getById(HttpServletRequest request, @PathVariable("id") UUID id) {
-        return ResponseEntityUtil.buildObject(request, service.getById(id));
-    }
-
-
-    @Operation(summary = "Lodging owner accept the booking. Is waiting for the payment", operationId = "pending")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.LODGING_OWNER_ROLE)
-    @PutMapping(value = "/pending/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> pendingBooking(HttpServletRequest request,
-                                                                                  @PathVariable("id") UUID bookingId) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.PENDING, user.getId()));
-    }
-
-    @Operation(summary = "Booking payment. Booking is accepted", operationId = "payment")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.TOURIST_ROLE)
-    @PutMapping(value = "/accepted/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> bookingPayment(HttpServletRequest request,
-                                                                                  @PathVariable("id") UUID bookingId) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.ACCEPTED, user.getId()));
-    }
-
-    @Operation(summary = "Reject the booking by lodging owner", operationId = "reject")
-    @CommonApiResponses
-    @PreAuthorize(AuthenticationHelper.LODGING_OWNER_ROLE)
-    @PutMapping(value = "/reject/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> rejectBooking(HttpServletRequest request,
-                                                                                 @PathVariable("id") UUID bookingId) {
-        User user = jwtTokenProvider.getUserFromToken(request);
-        return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.REJECTED, user.getId()));
-    }
 }

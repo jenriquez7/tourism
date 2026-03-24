@@ -19,9 +19,8 @@ import com.tourism.util.validations.BookingValidation;
 import com.tourism.util.helpers.PricingService;
 import io.vavr.control.Either;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +32,7 @@ import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository repository;
@@ -47,25 +47,6 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper mapper;
 
     private final List<BookingObserver> observers = new ArrayList<>();
-
-
-    @Autowired
-    public BookingServiceImpl(BookingRepository repository, TouristRepository touristRepository,
-                              LodgingRepository lodgingRepository, BookingValidation bookingValidation,
-                              DateValidation dateValidation, BookingDateRepository dateRepository, PageService pageService,
-                              PricingService pricingService, BookingMapper mapper,
-                              @Qualifier("bookingQueueServiceKafkaImpl") BookingSendingQueueService queueSendingService) {
-        this.repository = repository;
-        this.touristRepository = touristRepository;
-        this.lodgingRepository = lodgingRepository;
-        this.bookingValidation = bookingValidation;
-        this.dateValidation = dateValidation;
-        this.dateRepository = dateRepository;
-        this.pageService = pageService;
-        this.pricingService = pricingService;
-        this.queueSendingService = queueSendingService;
-        this.mapper = mapper;
-    }
 
     @Override
     @Transactional

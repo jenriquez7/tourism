@@ -1,6 +1,9 @@
 package com.tourism.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import com.tourism.model.TouristType;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -35,4 +38,8 @@ public class TouristRequestDTO {
     @Size(min = 8, max = 30, message = "password size must be between 8 and 30 characters")
     @NotNull
     private String password;
+
+    @Schema(description = "Tourist type", example = "STANDARD")
+    @Builder.Default
+    private TouristType type = TouristType.STANDARD;
 }
