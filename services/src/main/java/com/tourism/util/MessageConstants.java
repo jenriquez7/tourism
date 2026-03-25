@@ -163,4 +163,6 @@ public final class MessageConstants {
 
    public static final String ERROR_ENOUGH_CAPACITY = "no fue posible hacer la reserva por alcanzar el límite de capacidad";
 
+   public static final String EXPIRATION_JOB_MESSAGE = "Job de Expiración: Se han actualizado {} reservas a EXPIRED.";
+
 }

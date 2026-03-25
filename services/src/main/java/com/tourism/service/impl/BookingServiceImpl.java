@@ -79,7 +79,7 @@ public class BookingServiceImpl implements BookingService {
       try {
          String key = bookingDto.generateIdempotencyKey(touristId);
          if (repository.existsByIdempotencyKey(key)) {
-            log.info(MessageConstants.BOOKING_DUPLICATE_MESSAGE, key);
+            log.warn(MessageConstants.BOOKING_DUPLICATE_MESSAGE, key);
             return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
          }
          Tourist tourist = touristRepository.findById(touristId).orElse(null);
@@ -235,13 +235,12 @@ public class BookingServiceImpl implements BookingService {
    public void updateToExpiredBookings() {
       LocalDate tomorrow = LocalDate.now().plusDays(1);
       List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING);
-      List<Booking> bookingsToExpire = repository.findByCheckInLessThanAndStateIn(tomorrow, states);
 
-      for (Booking booking : bookingsToExpire) {
-         booking.setState(BookingState.EXPIRED);
+      int affectedRows = repository.expireBookingsAutomatic(tomorrow, states);
+
+      if (affectedRows > 0) {
+         log.info(MessageConstants.EXPIRATION_JOB_MESSAGE, affectedRows);
       }
-
-      repository.saveAll(bookingsToExpire);
    }
 
    @Override
