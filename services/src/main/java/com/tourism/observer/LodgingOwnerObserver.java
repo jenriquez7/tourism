@@ -1,56 +1,59 @@
 package com.tourism.observer;
 
-import java.util.UUID;
-
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import com.tourism.model.BookingState;
-import com.tourism.model.LodgingOwner;
+import com.tourism.event.BookingStatusEvent;
 import com.tourism.model.MessageType;
 import com.tourism.model.Notification;
-import com.tourism.model.Tourist;
 import com.tourism.service.NotificationService;
 import com.tourism.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
-public class LodgingOwnerObserver implements BookingObserver {
+public class LodgingOwnerObserver {
 
    private final NotificationService notificationService;
 
-   @Override
-   public void notifyStatusChange(String lodgingName, UUID bookingId, Tourist tourist, LodgingOwner owner, BookingState state) {
+   @Async
+   @EventListener
+   public void handleOwnerNotification(BookingStatusEvent event) {
+      log.info(MessageConstants.OWNER_NOTIFICATION, event.tourist().getFirstName(), event.bookingId());
       StringBuilder builder = new StringBuilder();
-      switch (state) {
+      switch (event.state()) {
          case CREATED:
             builder
                   .append(MessageConstants.CREATED_BOOKING_OWNER)
-                  .append(lodgingName)
+                  .append(event.lodgingName())
                   .append(". ")
                   .append(MessageConstants.BOOKING_ID_IS)
-                  .append(bookingId);
+                  .append(event.bookingId());
             break;
          case PENDING:
             builder
                   .append(MessageConstants.PENDING_BOOKING_OWNER)
-                  .append(lodgingName)
+                  .append(event.lodgingName())
                   .append(". ")
                   .append(MessageConstants.BOOKING_ID_IS)
-                  .append(bookingId);
+                  .append(event.bookingId());
             break;
          case REJECTED:
-            builder.append(MessageConstants.REJECTED_BOOKING_OWNER).append(lodgingName).append(" - ").append(bookingId);
+            builder.append(MessageConstants.REJECTED_BOOKING_OWNER).append(event.lodgingName()).append(" - ").append(event.bookingId());
             break;
          case ACCEPTED:
-            builder.append(MessageConstants.ACCEPTED_BOOKING_OWNER).append(lodgingName).append(" - ").append(bookingId);
+            builder.append(MessageConstants.ACCEPTED_BOOKING_OWNER).append(event.lodgingName()).append(" - ").append(event.bookingId());
             break;
          case EXPIRED:
-            builder.append(MessageConstants.THE_BOOKING_IN).append(lodgingName).append(" - ").append(MessageConstants.EXPIRED_BOOKING);
+            builder.append(MessageConstants.THE_BOOKING_IN).append(event.lodgingName()).append(" - ").append(MessageConstants.EXPIRED_BOOKING);
             break;
       }
-      notificationService.createNotification(new Notification(owner, builder.toString(), MessageType.EMAIL));
+      log.info(builder.toString());
+      notificationService.createNotification(new Notification(event.owner(), builder.toString(), MessageType.EMAIL));
    }
 
 }

@@ -16,8 +16,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
    List<Booking> findAllByOrderByCheckInAsc();
 
-   List<Booking> findByCheckInLessThanAndStateIn(LocalDate checkInDate, List<BookingState> states);
-
    boolean existsByIdempotencyKey(String key);
 
    @Modifying

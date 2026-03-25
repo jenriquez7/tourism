@@ -18,7 +18,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -59,8 +59,6 @@ import com.tourism.model.Role;
 import com.tourism.model.Tourist;
 import com.tourism.model.TouristType;
 import com.tourism.model.TouristicPlace;
-import com.tourism.observer.LodgingOwnerObserver;
-import com.tourism.observer.TouristObserver;
 import com.tourism.repository.BookingDateRepository;
 import com.tourism.repository.BookingRepository;
 import com.tourism.repository.LodgingRepository;
@@ -108,10 +106,7 @@ class BookingServiceTests {
    private BookingSendingQueueService queueService;
 
    @Mock
-   private LodgingOwnerObserver lodgingOwnerObserver;
-
-   @Mock
-   private TouristObserver touristObserver;
+   private ApplicationEventPublisher eventPublisher;
 
    @InjectMocks
    private BookingServiceImpl bookingService;
@@ -160,8 +155,6 @@ class BookingServiceTests {
             requestDto.checkIn(), requestDto.checkOut(), existingBooking.getTotalPrice(), lodging.getPhone(), lodging.getInformation(),
             existingBooking.getState());
       mockDates = Arrays.asList(requestDto.checkIn(), requestDto.checkOut().plusDays(1));
-      bookingService.addObserver(lodgingOwnerObserver);
-      bookingService.addObserver(touristObserver);
       bookingMessage = new BookingMessage(requestDto, tourist.getId(), key);
    }
 
@@ -276,18 +269,6 @@ class BookingServiceTests {
    void processBookingTouristNotFound() {
       when(touristRepository.findById(any())).thenReturn(Optional.empty());
       assertThrows(NullPointerException.class, () -> bookingService.processBooking(bookingMessage));
-   }
-
-   @Test
-   @DisplayName("Notify Observers")
-   void notifyObservers() {
-      bookingService.notifyObservers(existingBooking.getLodging().getName(), existingBooking.getId(), existingBooking.getTourist(),
-            existingBooking.getLodging().getLodgingOwner(), BookingState.CREATED);
-
-      verify(lodgingOwnerObserver, times(1)).notifyStatusChange(existingBooking.getLodging().getName(), existingBooking.getId(),
-            existingBooking.getTourist(), existingBooking.getLodging().getLodgingOwner(), BookingState.CREATED);
-      verify(touristObserver, times(1)).notifyStatusChange(existingBooking.getLodging().getName(), existingBooking.getId(),
-            existingBooking.getTourist(), existingBooking.getLodging().getLodgingOwner(), BookingState.CREATED);
    }
 
    @Test
@@ -585,28 +566,6 @@ class BookingServiceTests {
    }
 
    @Test
-   @DisplayName("Change Booking State - Should Expire Eligible Bookings")
-   void updateToExpiredBookingsShouldExpireEligibleBookings() {
-      LocalDate tomorrow = LocalDate.now().plusDays(1);
-      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING);
-
-      Booking booking1 = new Booking(LocalDate.now(), LocalDate.now().plusDays(2), 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1, false,
-            "key");
-      Booking booking2 = new Booking(LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), 100.0, lodging, tourist, BookingState.PENDING, 2, 1,
-            1, false, "key");
-      List<Booking> bookingsToExpire = Arrays.asList(booking1, booking2);
-
-      when(repository.findByCheckInLessThanAndStateIn(tomorrow, states)).thenReturn(bookingsToExpire);
-
-      bookingService.updateToExpiredBookings();
-
-      verify(repository).findByCheckInLessThanAndStateIn(tomorrow, states);
-      verify(repository).saveAll(bookingsToExpire);
-      assertEquals(BookingState.EXPIRED, booking1.getState());
-      assertEquals(BookingState.EXPIRED, booking2.getState());
-   }
-
-   @Test
    @DisplayName("Change Booking State - Should Not Expire Non Eligible Bookings")
    void updateToExpiredBookingsShouldNotExpireNonEligibleBookings() {
       LocalDate tomorrow = LocalDate.now().plusDays(1);
@@ -615,14 +574,11 @@ class BookingServiceTests {
       Booking booking1 = new Booking(LocalDate.now().plusDays(2), LocalDate.now().plusDays(4), 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1,
             false, "key");
       Booking booking2 = new Booking(LocalDate.now().plusDays(3), LocalDate.now().plusDays(5), 100.0, lodging, tourist, BookingState.PENDING, 2, 1, 1,
-            false, "key");
-
-      when(repository.findByCheckInLessThanAndStateIn(tomorrow, states)).thenReturn(new ArrayList<>());
+            false, "key2");
 
       bookingService.updateToExpiredBookings();
 
-      verify(repository).findByCheckInLessThanAndStateIn(tomorrow, states);
-      verify(repository).saveAll(new ArrayList<>());
+      verify(repository).expireBookingsAutomatic(tomorrow, states);
       assertEquals(BookingState.CREATED, booking1.getState());
       assertEquals(BookingState.PENDING, booking2.getState());
    }
@@ -633,12 +589,9 @@ class BookingServiceTests {
       LocalDate tomorrow = LocalDate.now().plusDays(1);
       List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING);
 
-      when(repository.findByCheckInLessThanAndStateIn(tomorrow, states)).thenReturn(new ArrayList<>());
-
       bookingService.updateToExpiredBookings();
 
-      verify(repository).findByCheckInLessThanAndStateIn(tomorrow, states);
-      verify(repository).saveAll(new ArrayList<>());
+      verify(repository).expireBookingsAutomatic(tomorrow, states);
    }
 
 }

@@ -165,4 +165,8 @@ public final class MessageConstants {
 
    public static final String EXPIRATION_JOB_MESSAGE = "Job de Expiración: Se han actualizado {} reservas a EXPIRED.";
 
+   public static final String TOURIST_NOTIFICATION = "Notificando al Turista {} sobre la reserva {}";
+
+   public static final String OWNER_NOTIFICATION = "Notificando al Propietario {} sobre el cambio a {}";
+
 }

@@ -1,7 +1,6 @@
 package com.tourism.service.impl;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -10,6 +9,7 @@ import java.util.UUID;
 
 import io.vavr.control.Either;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,13 +23,13 @@ import com.tourism.dto.request.BookingUpdateRequestDTO;
 import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.BookingResponseDTO;
 import com.tourism.dto.response.ErrorDto;
+import com.tourism.event.BookingStatusEvent;
 import com.tourism.model.Booking;
 import com.tourism.model.BookingDate;
 import com.tourism.model.BookingState;
 import com.tourism.model.Lodging;
 import com.tourism.model.LodgingOwner;
 import com.tourism.model.Tourist;
-import com.tourism.observer.BookingObserver;
 import com.tourism.repository.BookingDateRepository;
 import com.tourism.repository.BookingRepository;
 import com.tourism.repository.LodgingRepository;
@@ -71,7 +71,7 @@ public class BookingServiceImpl implements BookingService {
 
    private final BookingMapper mapper;
 
-   private final List<BookingObserver> observers = new ArrayList<>();
+   private final ApplicationEventPublisher eventPublisher;
 
    @Override
    @Transactional
@@ -79,7 +79,7 @@ public class BookingServiceImpl implements BookingService {
       try {
          String key = bookingDto.generateIdempotencyKey(touristId);
          if (repository.existsByIdempotencyKey(key)) {
-            log.warn(MessageConstants.BOOKING_DUPLICATE_MESSAGE, key);
+            this.printDuplicateBookingMessage(key);
             return Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED);
          }
          Tourist tourist = touristRepository.findById(touristId).orElse(null);
@@ -111,7 +111,7 @@ public class BookingServiceImpl implements BookingService {
       Lodging lodging = lodgingRepository.findById(bookingMessage.bookingRequest().lodgingId()).orElse(null);
 
       if (repository.existsByIdempotencyKey(key)) {
-         log.warn(MessageConstants.BOOKING_DUPLICATE_MESSAGE, key);
+         this.printDuplicateBookingMessage(key);
          return;
       }
 
@@ -121,11 +121,11 @@ public class BookingServiceImpl implements BookingService {
 
          booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist),
                BookingState.CREATED, key);
-         this.notifyObservers(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.CREATED);
+         this.handleStatusChange(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.CREATED);
       } else {
          booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist),
                BookingState.UNAVAILABLE, key);
-         this.notifyObservers(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.UNAVAILABLE);
+         this.handleStatusChange(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.UNAVAILABLE);
       }
    }
 
@@ -209,12 +209,12 @@ public class BookingServiceImpl implements BookingService {
          Booking booking = repository.findById(bookingId).orElse(null);
          if (booking != null) {
             if (bookingValidation.validChangeState(booking, newState, userId).isRight()) {
-               notifyObservers(booking.getLodging().getName(), bookingId, booking.getTourist(), booking.getLodging().getLodgingOwner(), newState);
                if (newState.equals(BookingState.ACCEPTED)) {
                   booking.setHasPaid(true);
                }
                booking.setState(newState);
                repository.save(booking);
+               handleStatusChange(booking.getLodging().getName(), bookingId, booking.getTourist(), booking.getLodging().getLodgingOwner(), newState);
             } else {
                return Either.left(new ErrorDto[] { new ErrorDto(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_INVALID_BOOKING_CHANGE_STATE, null) });
             }
@@ -243,23 +243,6 @@ public class BookingServiceImpl implements BookingService {
       }
    }
 
-   @Override
-   public void notifyObservers(String lodgingName, UUID bookingId, Tourist tourist, LodgingOwner owner, BookingState state) {
-      for (BookingObserver observer : observers) {
-         observer.notifyStatusChange(lodgingName, bookingId, tourist, owner, state);
-      }
-   }
-
-   @Override
-   public void addObserver(BookingObserver observer) {
-      observers.add(observer);
-   }
-
-   @Override
-   public void removeObserver(BookingObserver observer) {
-      observers.remove(observer);
-   }
-
    private Either<ErrorDto[], Booking> createBooking(BookingRequestDTO bookingDto, Lodging lodging, Tourist tourist, BookingState state, String key) {
       List<LocalDate> bookingDays = dateValidation.datesBetweenDates(bookingDto.checkIn(), bookingDto.checkOut());
       Double bookingPrice = pricingService.calculateBookingPrice(tourist.getType(), lodging, bookingDays, bookingDto.adults(), bookingDto.children(),
@@ -281,6 +264,14 @@ public class BookingServiceImpl implements BookingService {
                      bookingDto.children(), bookingDto.babies()));
          dateRepository.save(bookingDate);
       }
+   }
+
+   private void handleStatusChange(String lodging, UUID bookingId, Tourist tourist, LodgingOwner owner, BookingState state) {
+      eventPublisher.publishEvent(new BookingStatusEvent(lodging, bookingId, tourist, owner, state));
+   }
+
+   private void printDuplicateBookingMessage(String key) {
+      log.warn(MessageConstants.BOOKING_DUPLICATE_MESSAGE, key);
    }
 
 }
