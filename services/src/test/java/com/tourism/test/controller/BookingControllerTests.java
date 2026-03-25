@@ -1,18 +1,20 @@
 package com.tourism.test.controller;
 
-import com.tourism.controller.BookingController;
-import com.tourism.dto.request.BookingRequestDTO;
-import com.tourism.dto.request.BookingUpdateRequestDTO;
-import com.tourism.dto.request.PageableRequest;
-import com.tourism.dto.response.BookingResponseDTO;
-import com.tourism.dto.response.StandardResponseDto;
-import com.tourism.infrastructure.JwtTokenProvider;
-import com.tourism.model.Role;
-import com.tourism.model.*;
-import com.tourism.service.BookingService;
-import com.tourism.util.MessageConstants;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import io.vavr.control.Either;
-import jakarta.servlet.http.HttpServletRequest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,203 +30,219 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.time.LocalDate;
-import java.util.*;
+import com.tourism.controller.BookingController;
+import com.tourism.dto.request.BookingRequestDTO;
+import com.tourism.dto.request.BookingUpdateRequestDTO;
+import com.tourism.dto.request.PageableRequest;
+import com.tourism.dto.response.BookingResponseDTO;
+import com.tourism.dto.response.StandardResponseDto;
+import com.tourism.infrastructure.JwtTokenProvider;
+import com.tourism.model.Booking;
+import com.tourism.model.BookingState;
+import com.tourism.model.Lodging;
+import com.tourism.model.LodgingOwner;
+import com.tourism.model.Role;
+import com.tourism.model.TouristicPlace;
+import com.tourism.model.User;
+import com.tourism.service.BookingService;
+import com.tourism.util.MessageConstants;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class BookingControllerTests {
 
-    @Mock
-    private BookingService service;
+   @Mock
+   private BookingService service;
 
-    @Mock
-    private JwtTokenProvider jwtTokenProvider;
+   @Mock
+   private JwtTokenProvider jwtTokenProvider;
 
-    @Mock
-    private HttpServletRequest request;
+   @Mock
+   private HttpServletRequest request;
 
-    @InjectMocks
-    private BookingController controller;
+   @InjectMocks
+   private BookingController controller;
 
-    private BookingRequestDTO requestDTO;
-    private BookingResponseDTO responseDTO;
-    private BookingUpdateRequestDTO updateRequestDTO;
+   private BookingRequestDTO requestDTO;
 
-    @BeforeEach
-    void setUp() {
-        LocalDate checkIn = LocalDate.now();
-        LocalDate checkOut = LocalDate.now().plusDays(3L);
-        UUID bookingId = UUID.randomUUID();
-        Lodging lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), new LodgingOwner(), true);
-        requestDTO = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
-        responseDTO = new BookingResponseDTO(bookingId, lodging.getName(), "Turista", "Verano", checkIn, checkOut, 150.0, lodging.getPhone(), lodging.getInformation(), BookingState.CREATED);
-        updateRequestDTO = new BookingUpdateRequestDTO(bookingId, checkIn.plusDays(5L), checkOut.plusDays(7L));
-    }
+   private BookingResponseDTO responseDTO;
 
-    @Test
-    @DisplayName("Create Booking")
-    void create() {
-        User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.create(requestDTO, user.getId())).thenReturn(Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED));
-        ResponseEntity<StandardResponseDto<String>> response = controller.create(request, requestDTO);
+   private BookingUpdateRequestDTO updateRequestDTO;
 
-        validateBookingProcessed(response);
-        verify(service, times(1)).create(requestDTO, user.getId());
-    }
+   @BeforeEach
+   void setUp() {
+      LocalDate checkIn = LocalDate.now();
+      LocalDate checkOut = LocalDate.now().plusDays(3L);
+      UUID bookingId = UUID.randomUUID();
+      Lodging lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(),
+            new LodgingOwner(), true, true);
+      requestDTO = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
+      responseDTO = new BookingResponseDTO(bookingId, lodging.getName(), "Turista", "Verano", checkIn, checkOut, 150.0, lodging.getPhone(),
+            lodging.getInformation(), BookingState.CREATED);
+      updateRequestDTO = new BookingUpdateRequestDTO(bookingId, checkIn.plusDays(5L), checkOut.plusDays(7L));
+   }
 
-    @Test
-    @DisplayName("Update Booking")
-    void update() {
-        User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.update(updateRequestDTO, user.getId())).thenReturn(Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED));
+   @Test
+   @DisplayName("Create Booking")
+   void create() {
+      User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      when(service.create(requestDTO, user.getId())).thenReturn(Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED));
+      ResponseEntity<StandardResponseDto<String>> response = controller.create(request, requestDTO);
 
-        ResponseEntity<StandardResponseDto<String>> response = controller.update(request, updateRequestDTO);
+      validateBookingProcessed(response);
+      verify(service, times(1)).create(requestDTO, user.getId());
+   }
 
-        validateBookingProcessed(response);
-        verify(service, times(1)).update(updateRequestDTO, user.getId());
-    }
+   @Test
+   @DisplayName("Update Booking")
+   void update() {
+      User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      when(service.update(updateRequestDTO, user.getId())).thenReturn(Either.right(MessageConstants.BOOKING_IS_BEING_PROCESSED));
 
-    @Test
-    @DisplayName("Find All Bookings")
-    void findAll() {
-        List<BookingResponseDTO> places = Collections.singletonList(responseDTO);
-        Page<BookingResponseDTO> page = new PageImpl<>(places);
+      ResponseEntity<StandardResponseDto<String>> response = controller.update(request, updateRequestDTO);
 
-        when(service.findAll(any(PageableRequest.class))).thenReturn(Either.right(page));
+      validateBookingProcessed(response);
+      verify(service, times(1)).update(updateRequestDTO, user.getId());
+   }
 
-        PageableRequest pageableRequest = new PageableRequest(0, 10, new String[]{"id"}, Sort.Direction.ASC);
-        ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> response = controller.findAll(request, pageableRequest);
+   @Test
+   @DisplayName("Find All Bookings")
+   void findAll() {
+      List<BookingResponseDTO> places = Collections.singletonList(responseDTO);
+      Page<BookingResponseDTO> page = new PageImpl<>(places);
 
-        verifyPageBookingResponseDto(response);
-        verify(service, times(1)).findAll(pageableRequest);
-    }
+      when(service.findAll(any(PageableRequest.class))).thenReturn(Either.right(page));
 
-    @Test
-    @DisplayName("Delete Booking")
-    void delete() {
-        Booking booking = new Booking();
-        booking.setId(UUID.randomUUID());
-        UUID id = UUID.randomUUID();
-        when(service.delete(id)).thenReturn(Either.right(booking));
+      PageableRequest pageableRequest = new PageableRequest(0, 10, new String[] { "id" }, Sort.Direction.ASC);
+      ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> response = controller.findAll(request, pageableRequest);
 
-        ResponseEntity<StandardResponseDto<Booking>> response = controller.delete(request, id);
+      verifyPageBookingResponseDto(response);
+      verify(service, times(1)).findAll(pageableRequest);
+   }
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        StandardResponseDto<Booking> body = response.getBody();
-        assertNotNull(body);
+   @Test
+   @DisplayName("Delete Booking")
+   void delete() {
+      Booking booking = new Booking();
+      booking.setId(UUID.randomUUID());
+      UUID id = UUID.randomUUID();
+      when(service.delete(id)).thenReturn(Either.right(booking));
 
-        Object[] data = body.getData();
-        assertNotNull(data);
-        assertEquals(1, data.length);
-        assertInstanceOf(Booking.class, data[0]);
-        assertEquals(booking, data[0]);
-        verify(service, times(1)).delete(id);
-    }
+      ResponseEntity<StandardResponseDto<Booking>> response = controller.delete(request, id);
 
-    @Test
-    @DisplayName("Get Booking By Id")
-    void getById() {
-        UUID id = UUID.randomUUID();
-        when(service.getById(id)).thenReturn(Either.right(responseDTO));
-        ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.getById(request, id);
-        verifyBookingResponseDto(response);
-        verify(service, times(1)).getById(id);
-    }
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      StandardResponseDto<Booking> body = response.getBody();
+      assertNotNull(body);
 
-    @Test
-    @DisplayName("Update to Pending Booking")
-    void pendingBooking() {
-        User user = new User(UUID.randomUUID(), "owner@email.com", Role.LODGING_OWNER);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        UUID bookingId = UUID.randomUUID();
+      Object[] data = body.getData();
+      assertNotNull(data);
+      assertEquals(1, data.length);
+      assertInstanceOf(Booking.class, data[0]);
+      assertEquals(booking, data[0]);
+      verify(service, times(1)).delete(id);
+   }
 
-        when(service.changeState(bookingId, BookingState.PENDING, user.getId())).thenReturn(Either.right(responseDTO));
-        ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.pendingBooking(request, bookingId);
+   @Test
+   @DisplayName("Get Booking By Id")
+   void getById() {
+      UUID id = UUID.randomUUID();
+      when(service.getById(id)).thenReturn(Either.right(responseDTO));
+      ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.getById(request, id);
+      verifyBookingResponseDto(response);
+      verify(service, times(1)).getById(id);
+   }
 
-        verifyBookingResponseDto(response);
-        verify(service, times(1)).changeState(bookingId, BookingState.PENDING, user.getId());
-    }
+   @Test
+   @DisplayName("Update to Pending Booking")
+   void pendingBooking() {
+      User user = new User(UUID.randomUUID(), "owner@email.com", Role.LODGING_OWNER);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      UUID bookingId = UUID.randomUUID();
 
-    @Test
-    @DisplayName("Update to paid booking")
-    void bookingPayment() {
-        User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        UUID bookingId = UUID.randomUUID();
+      when(service.changeState(bookingId, BookingState.PENDING_PAYMENT, user.getId())).thenReturn(Either.right(responseDTO));
+      ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.pendingBooking(request, bookingId);
 
-        when(service.changeState(bookingId, BookingState.ACCEPTED, user.getId())).thenReturn(Either.right(responseDTO));
-        ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.bookingPayment(request, bookingId);
+      verifyBookingResponseDto(response);
+      verify(service, times(1)).changeState(bookingId, BookingState.PENDING_PAYMENT, user.getId());
+   }
 
-        verifyBookingResponseDto(response);
-        verify(service, times(1)).changeState(bookingId, BookingState.ACCEPTED, user.getId());
-    }
+   @Test
+   @DisplayName("Update to paid booking")
+   void bookingPayment() {
+      User user = new User(UUID.randomUUID(), "tverano@email.com", Role.TOURIST);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      UUID bookingId = UUID.randomUUID();
 
-    @Test
-    @DisplayName("Update to rejected booking")
-    void rejectBooking() {
-        User user = new User(UUID.randomUUID(), "owner@email.com", Role.LODGING_OWNER);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        UUID bookingId = UUID.randomUUID();
+      when(service.changeState(bookingId, BookingState.ACCEPTED, user.getId())).thenReturn(Either.right(responseDTO));
+      ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.bookingPayment(request, bookingId);
 
-        when(service.changeState(bookingId, BookingState.REJECTED, user.getId())).thenReturn(Either.right(responseDTO));
-        ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.rejectBooking(request, bookingId);
+      verifyBookingResponseDto(response);
+      verify(service, times(1)).changeState(bookingId, BookingState.ACCEPTED, user.getId());
+   }
 
-        verifyBookingResponseDto(response);
-        verify(service, times(1)).changeState(bookingId, BookingState.REJECTED, user.getId());
-    }
+   @Test
+   @DisplayName("Update to rejected booking")
+   void rejectBooking() {
+      User user = new User(UUID.randomUUID(), "owner@email.com", Role.LODGING_OWNER);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      UUID bookingId = UUID.randomUUID();
 
+      when(service.changeState(bookingId, BookingState.REJECTED, user.getId())).thenReturn(Either.right(responseDTO));
+      ResponseEntity<StandardResponseDto<BookingResponseDTO>> response = controller.rejectBooking(request, bookingId);
 
-    private void verifyBookingResponseDto(ResponseEntity<StandardResponseDto<BookingResponseDTO>> response) {
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        StandardResponseDto<BookingResponseDTO> body = response.getBody();
-        assertNotNull(body);
+      verifyBookingResponseDto(response);
+      verify(service, times(1)).changeState(bookingId, BookingState.REJECTED, user.getId());
+   }
 
-        Object[] data = body.getData();
-        assertNotNull(data);
-        assertEquals(1, data.length);
-        assertInstanceOf(BookingResponseDTO.class, data[0]);
+   private void verifyBookingResponseDto(ResponseEntity<StandardResponseDto<BookingResponseDTO>> response) {
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      StandardResponseDto<BookingResponseDTO> body = response.getBody();
+      assertNotNull(body);
 
-        BookingResponseDTO responseDto = (BookingResponseDTO) data[0];
-        assertEquals(responseDTO.id(), responseDto.id());
-        assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
-        assertEquals(responseDTO.firstName(), responseDto.firstName());
-    }
+      Object[] data = body.getData();
+      assertNotNull(data);
+      assertEquals(1, data.length);
+      assertInstanceOf(BookingResponseDTO.class, data[0]);
 
-    private void verifyPageBookingResponseDto(ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> response) {
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        StandardResponseDto<Page<BookingResponseDTO>> body = response.getBody();
-        assertNotNull(body);
+      BookingResponseDTO responseDto = (BookingResponseDTO) data[0];
+      assertEquals(responseDTO.id(), responseDto.id());
+      assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
+      assertEquals(responseDTO.firstName(), responseDto.firstName());
+   }
 
-        Object[] data = body.getData();
-        assertNotNull(data);
-        assertEquals(1, data.length);
-        assertInstanceOf(Page.class, data[0]);
+   private void verifyPageBookingResponseDto(ResponseEntity<StandardResponseDto<Page<BookingResponseDTO>>> response) {
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      StandardResponseDto<Page<BookingResponseDTO>> body = response.getBody();
+      assertNotNull(body);
 
-        Page<BookingResponseDTO> resultPage = (Page<BookingResponseDTO>) data[0];
-        assertEquals(1, resultPage.getTotalElements());
-        assertEquals(1, resultPage.getContent().size());
+      Object[] data = body.getData();
+      assertNotNull(data);
+      assertEquals(1, data.length);
+      assertInstanceOf(Page.class, data[0]);
 
-        BookingResponseDTO responseDto = resultPage.getContent().getFirst();
-        assertEquals(responseDTO.id(), responseDto.id());
-        assertEquals(responseDTO.checkIn(), responseDto.checkIn());
-        assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
-        assertEquals(responseDTO.firstName(), responseDto.firstName());
-    }
+      Page<BookingResponseDTO> resultPage = (Page<BookingResponseDTO>) data[0];
+      assertEquals(1, resultPage.getTotalElements());
+      assertEquals(1, resultPage.getContent().size());
 
-    private static void validateBookingProcessed(ResponseEntity<StandardResponseDto<String>> response) {
-        StandardResponseDto<String> body = response.getBody();
-        assertNotNull(body);
-        Object[] data = body.getData();
-        assertEquals(1, data.length);
-        assertInstanceOf(String.class, data[0]);
-        String result = (String) data[0];
-        assertEquals(result, MessageConstants.BOOKING_IS_BEING_PROCESSED);
-    }
+      BookingResponseDTO responseDto = resultPage.getContent().getFirst();
+      assertEquals(responseDTO.id(), responseDto.id());
+      assertEquals(responseDTO.checkIn(), responseDto.checkIn());
+      assertEquals(responseDTO.lodgingPhone(), responseDto.lodgingPhone());
+      assertEquals(responseDTO.firstName(), responseDto.firstName());
+   }
+
+   private static void validateBookingProcessed(ResponseEntity<StandardResponseDto<String>> response) {
+      StandardResponseDto<String> body = response.getBody();
+      assertNotNull(body);
+      Object[] data = body.getData();
+      assertEquals(1, data.length);
+      assertInstanceOf(String.class, data[0]);
+      String result = (String) data[0];
+      assertEquals(result, MessageConstants.BOOKING_IS_BEING_PROCESSED);
+   }
+
 }

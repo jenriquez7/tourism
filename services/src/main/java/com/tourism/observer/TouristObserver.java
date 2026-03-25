@@ -34,7 +34,7 @@ public class TouristObserver {
                   .append(MessageConstants.BOOKING_ID_IS)
                   .append(event.bookingId());
             break;
-         case PENDING:
+         case PENDING_PAYMENT:
             builder
                   .append(MessageConstants.PENDING_BOOKING_TOURIST)
                   .append(event.lodgingName())

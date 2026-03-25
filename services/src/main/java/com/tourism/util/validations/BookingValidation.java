@@ -79,11 +79,11 @@ public class BookingValidation {
             if (!booking.getLodging().getLodgingOwner().getId().equals(userId)) {
                errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_USER_LODGING_OWNER));
             }
-            if (!Arrays.asList(BookingState.PENDING, BookingState.REJECTED).contains(newState)) {
+            if (!Arrays.asList(BookingState.PENDING_PAYMENT, BookingState.REJECTED).contains(newState)) {
                errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_BOOKING_CHANGE_STATE));
             }
          }
-         case PENDING -> {
+         case PENDING_PAYMENT -> {
             if (!booking.getTourist().getId().equals(userId)) {
                errors.add(ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.ERROR_USER_TOURIST));
             }

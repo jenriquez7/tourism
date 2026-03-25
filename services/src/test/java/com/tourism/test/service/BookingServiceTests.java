@@ -13,7 +13,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -141,7 +140,7 @@ class BookingServiceTests {
       tourist = new Tourist("tverano@email.com", "12345678", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
       LodgingOwner owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
       lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), owner,
-            true);
+            true, true);
       tourist.setId(UUID.randomUUID());
       lodging.setId(UUID.randomUUID());
       requestDto = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
@@ -243,9 +242,9 @@ class BookingServiceTests {
 
       bookingService.processBooking(bookingMessage);
 
-      verify(repository).save(argThat(
-            booking -> booking.getState() == BookingState.CREATED && booking.getTourist().equals(tourist) && booking.getLodging().equals(lodging)));
-      verify(dateRepository, times(mockDates.size())).save(any(BookingDate.class));
+      verify(repository).save(argThat(booking -> booking.getState() == BookingState.PENDING_PAYMENT && booking.getTourist().equals(tourist) && booking
+            .getLodging()
+            .equals(lodging)));
    }
 
    @Test
@@ -569,25 +568,25 @@ class BookingServiceTests {
    @DisplayName("Change Booking State - Should Not Expire Non Eligible Bookings")
    void updateToExpiredBookingsShouldNotExpireNonEligibleBookings() {
       LocalDate tomorrow = LocalDate.now().plusDays(1);
-      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING);
+      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING_PAYMENT);
 
       Booking booking1 = new Booking(LocalDate.now().plusDays(2), LocalDate.now().plusDays(4), 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1,
             false, "key");
-      Booking booking2 = new Booking(LocalDate.now().plusDays(3), LocalDate.now().plusDays(5), 100.0, lodging, tourist, BookingState.PENDING, 2, 1, 1,
-            false, "key2");
+      Booking booking2 = new Booking(LocalDate.now().plusDays(3), LocalDate.now().plusDays(5), 100.0, lodging, tourist, BookingState.PENDING_PAYMENT,
+            2, 1, 1, false, "key2");
 
       bookingService.updateToExpiredBookings();
 
       verify(repository).expireBookingsAutomatic(tomorrow, states);
       assertEquals(BookingState.CREATED, booking1.getState());
-      assertEquals(BookingState.PENDING, booking2.getState());
+      assertEquals(BookingState.PENDING_PAYMENT, booking2.getState());
    }
 
    @Test
    @DisplayName("Change Booking State - Should Handle Empty List")
    void updateToExpiredBookings_ShouldHandleEmptyList() {
       LocalDate tomorrow = LocalDate.now().plusDays(1);
-      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING);
+      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING_PAYMENT);
 
       bookingService.updateToExpiredBookings();
 

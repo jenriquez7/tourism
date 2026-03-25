@@ -115,7 +115,7 @@ public class BookingController {
    @PutMapping(value = "/pending/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
    public ResponseEntity<StandardResponseDto<BookingResponseDTO>> pendingBooking(HttpServletRequest request, @PathVariable("id") UUID bookingId) {
       User user = jwtTokenProvider.getUserFromToken(request);
-      return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.PENDING, user.getId()));
+      return ResponseEntityUtil.buildObject(request, service.changeState(bookingId, BookingState.PENDING_PAYMENT, user.getId()));
    }
 
    @Operation(summary = "Booking payment. Booking is accepted", operationId = "payment")

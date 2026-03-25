@@ -1,16 +1,20 @@
 package com.tourism.test.controller;
 
-import com.tourism.controller.LodgingController;
-import com.tourism.dto.request.LodgingRequestDTO;
-import com.tourism.dto.request.PageableRequest;
-import com.tourism.dto.response.LodgingResponseDTO;
-import com.tourism.dto.response.StandardResponseDto;
-import com.tourism.dto.response.TouristicPlaceResponseDTO;
-import com.tourism.infrastructure.JwtTokenProvider;
-import com.tourism.model.*;
-import com.tourism.service.LodgingService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import io.vavr.control.Either;
-import jakarta.servlet.http.HttpServletRequest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,164 +30,180 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import com.tourism.controller.LodgingController;
+import com.tourism.dto.request.LodgingRequestDTO;
+import com.tourism.dto.request.PageableRequest;
+import com.tourism.dto.response.LodgingResponseDTO;
+import com.tourism.dto.response.StandardResponseDto;
+import com.tourism.dto.response.TouristicPlaceResponseDTO;
+import com.tourism.infrastructure.JwtTokenProvider;
+import com.tourism.model.Lodging;
+import com.tourism.model.LodgingOwner;
+import com.tourism.model.Region;
+import com.tourism.model.Role;
+import com.tourism.model.TouristicPlace;
+import com.tourism.model.User;
+import com.tourism.service.LodgingService;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class LodgingControllerTests {
 
-    @Mock
-    private LodgingService service;
+   @Mock
+   private LodgingService service;
 
-    @Mock
-    private JwtTokenProvider jwtTokenProvider;
+   @Mock
+   private JwtTokenProvider jwtTokenProvider;
 
-    @Mock
-    private HttpServletRequest request;
+   @Mock
+   private HttpServletRequest request;
 
-    @InjectMocks
-    private LodgingController controller;
+   @InjectMocks
+   private LodgingController controller;
 
-    private Lodging lodging;
-    private LodgingRequestDTO requestDto;
-    private LodgingResponseDTO lodgingResponseDTO;
+   private Lodging lodging;
 
-    @BeforeEach
-    void setUp() {
-        TouristicPlaceResponseDTO tpResponseDto = new TouristicPlaceResponseDTO(UUID.randomUUID(), "Punta del Este", "Hermoso lugar", Region.EAST, new ArrayList<>(), true);;
-        lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(), new LodgingOwner(), true);
-        lodgingResponseDTO = new LodgingResponseDTO(UUID.randomUUID(),"Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, tpResponseDto, true);
-        requestDto = new LodgingRequestDTO("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 4, 20, 25.0, UUID.randomUUID());
-    }
+   private LodgingRequestDTO requestDto;
 
-    @Test
-    @DisplayName("Create Lodging")
-    void create() {
-        User user = new User(UUID.randomUUID(), "admin@email.com", Role.ADMIN);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.create(requestDto, user.getId())).thenReturn(Either.right(lodgingResponseDTO));
-        ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.create(request, requestDto);
+   private LodgingResponseDTO lodgingResponseDTO;
 
-        verifyLodgingResponseDto(response);
-        verify(service, times(1)).create(requestDto, user.getId());
-    }
+   @BeforeEach
+   void setUp() {
+      TouristicPlaceResponseDTO tpResponseDto = new TouristicPlaceResponseDTO(UUID.randomUUID(), "Punta del Este", "Hermoso lugar", Region.EAST,
+            new ArrayList<>(), true);
+      ;
+      lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233", 50, 25.0, 5, new TouristicPlace(),
+            new LodgingOwner(), true, true);
+      lodgingResponseDTO = new LodgingResponseDTO(UUID.randomUUID(), "Hotel Test", "Un hotel de pruebas", "Parada 5, playa mansa", "+5984422112233",
+            50, 25.0, 5, tpResponseDto, true);
+      requestDto = new LodgingRequestDTO("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 4, 20, 25.0, true,
+            UUID.randomUUID());
+   }
 
-    @Test
-    @DisplayName("Update Lodging")
-    void update() {
-        User user = new User(UUID.randomUUID(), "admin@email.com", Role.ADMIN);
-        when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
-        when(service.update(lodging, user.getId())).thenReturn(Either.right(lodgingResponseDTO));
-        ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.update(request, lodging);
+   @Test
+   @DisplayName("Create Lodging")
+   void create() {
+      User user = new User(UUID.randomUUID(), "admin@email.com", Role.ADMIN);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      when(service.create(requestDto, user.getId())).thenReturn(Either.right(lodgingResponseDTO));
+      ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.create(request, requestDto);
 
-        verifyLodgingResponseDto(response);
-        verify(service, times(1)).update(lodging, user.getId());
-    }
+      verifyLodgingResponseDto(response);
+      verify(service, times(1)).create(requestDto, user.getId());
+   }
 
-    @Test
-    @DisplayName("Find All Lodgings")
-    void findAll() {
-        List<LodgingResponseDTO> places = Collections.singletonList(lodgingResponseDTO);
-        Page<LodgingResponseDTO> page = new PageImpl<>(places);
+   @Test
+   @DisplayName("Update Lodging")
+   void update() {
+      User user = new User(UUID.randomUUID(), "admin@email.com", Role.ADMIN);
+      when(jwtTokenProvider.getUserFromToken(request)).thenReturn(user);
+      when(service.update(lodging, user.getId())).thenReturn(Either.right(lodgingResponseDTO));
+      ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.update(request, lodging);
 
-        when(service.findAll(any(PageableRequest.class))).thenReturn(Either.right(page));
+      verifyLodgingResponseDto(response);
+      verify(service, times(1)).update(lodging, user.getId());
+   }
 
-        PageableRequest pageableRequest = new PageableRequest(0, 10, new String[]{"id"}, Sort.Direction.ASC);
-        ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response = controller.findAll(request, pageableRequest);
+   @Test
+   @DisplayName("Find All Lodgings")
+   void findAll() {
+      List<LodgingResponseDTO> places = Collections.singletonList(lodgingResponseDTO);
+      Page<LodgingResponseDTO> page = new PageImpl<>(places);
 
-        verifyPageLodgingResponseDto(response);
-        verify(service, times(1)).findAll(pageableRequest);
-    }
+      when(service.findAll(any(PageableRequest.class))).thenReturn(Either.right(page));
 
-    @Test
-    @DisplayName("Delete Lodging")
-    void delete() {
-        UUID id = UUID.randomUUID();
-        when(service.delete(id)).thenReturn(Either.right(lodging));
+      PageableRequest pageableRequest = new PageableRequest(0, 10, new String[] { "id" }, Sort.Direction.ASC);
+      ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response = controller.findAll(request, pageableRequest);
 
-        ResponseEntity<StandardResponseDto<Lodging>> response = controller.delete(request, id);
+      verifyPageLodgingResponseDto(response);
+      verify(service, times(1)).findAll(pageableRequest);
+   }
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        StandardResponseDto<Lodging> body = response.getBody();
-        assertNotNull(body);
+   @Test
+   @DisplayName("Delete Lodging")
+   void delete() {
+      UUID id = UUID.randomUUID();
+      when(service.delete(id)).thenReturn(Either.right(lodging));
 
-        Object[] data = body.getData();
-        assertNotNull(data);
-        assertEquals(1, data.length);
-        assertInstanceOf(Lodging.class, data[0]);
-        assertEquals(lodging, data[0]);
-        verify(service, times(1)).delete(id);
-    }
+      ResponseEntity<StandardResponseDto<Lodging>> response = controller.delete(request, id);
 
-    @Test
-    @DisplayName("Get Lodging By Id")
-    void getById() {
-        UUID id = UUID.randomUUID();
-        when(service.getById(id)).thenReturn(Either.right(lodgingResponseDTO));
-        ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.getById(request, id);
-        verifyLodgingResponseDto(response);
-        verify(service, times(1)).getById(id);
-    }
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      StandardResponseDto<Lodging> body = response.getBody();
+      assertNotNull(body);
 
-    @Test
-    @DisplayName("Get Lodging By Touristic Place")
-    void findByTouristicPlace() {
-        UUID touristicPlaceId = UUID.randomUUID();
-        List<LodgingResponseDTO> places = Collections.singletonList(lodgingResponseDTO);
-        Page<LodgingResponseDTO> page = new PageImpl<>(places);
+      Object[] data = body.getData();
+      assertNotNull(data);
+      assertEquals(1, data.length);
+      assertInstanceOf(Lodging.class, data[0]);
+      assertEquals(lodging, data[0]);
+      verify(service, times(1)).delete(id);
+   }
 
-        when(service.findLodgingsByTouristicPlace(any(UUID.class), any(PageableRequest.class))).thenReturn(Either.right(page));
+   @Test
+   @DisplayName("Get Lodging By Id")
+   void getById() {
+      UUID id = UUID.randomUUID();
+      when(service.getById(id)).thenReturn(Either.right(lodgingResponseDTO));
+      ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response = controller.getById(request, id);
+      verifyLodgingResponseDto(response);
+      verify(service, times(1)).getById(id);
+   }
 
-        PageableRequest pageableRequest = new PageableRequest(0, 10, new String[]{"id"}, Sort.Direction.ASC);
-        ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response = controller.findLodgingsByTouristicPlace(request, touristicPlaceId, pageableRequest);
+   @Test
+   @DisplayName("Get Lodging By Touristic Place")
+   void findByTouristicPlace() {
+      UUID touristicPlaceId = UUID.randomUUID();
+      List<LodgingResponseDTO> places = Collections.singletonList(lodgingResponseDTO);
+      Page<LodgingResponseDTO> page = new PageImpl<>(places);
 
-        verifyPageLodgingResponseDto(response);
-        verify(service, times(1)).findLodgingsByTouristicPlace(touristicPlaceId, pageableRequest);
-    }
+      when(service.findLodgingsByTouristicPlace(any(UUID.class), any(PageableRequest.class))).thenReturn(Either.right(page));
 
+      PageableRequest pageableRequest = new PageableRequest(0, 10, new String[] { "id" }, Sort.Direction.ASC);
+      ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response = controller.findLodgingsByTouristicPlace(request, touristicPlaceId,
+            pageableRequest);
 
-    private void verifyLodgingResponseDto(ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response) {
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        StandardResponseDto<LodgingResponseDTO> body = response.getBody();
-        assertNotNull(body);
+      verifyPageLodgingResponseDto(response);
+      verify(service, times(1)).findLodgingsByTouristicPlace(touristicPlaceId, pageableRequest);
+   }
 
-        Object[] data = body.getData();
-        assertNotNull(data);
-        assertEquals(1, data.length);
-        assertInstanceOf(LodgingResponseDTO.class, data[0]);
+   private void verifyLodgingResponseDto(ResponseEntity<StandardResponseDto<LodgingResponseDTO>> response) {
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      StandardResponseDto<LodgingResponseDTO> body = response.getBody();
+      assertNotNull(body);
 
-        LodgingResponseDTO responseDto = (LodgingResponseDTO) data[0];
-        assertEquals(lodgingResponseDTO.id(), responseDto.id());
-        assertEquals(lodgingResponseDTO.name(), responseDto.name());
-        assertEquals(lodgingResponseDTO.stars(), responseDto.stars());
-        assertEquals(lodgingResponseDTO.description(), responseDto.description());
-    }
+      Object[] data = body.getData();
+      assertNotNull(data);
+      assertEquals(1, data.length);
+      assertInstanceOf(LodgingResponseDTO.class, data[0]);
 
-    private void verifyPageLodgingResponseDto(ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response) {
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        StandardResponseDto<Page<LodgingResponseDTO>> body = response.getBody();
-        assertNotNull(body);
+      LodgingResponseDTO responseDto = (LodgingResponseDTO) data[0];
+      assertEquals(lodgingResponseDTO.id(), responseDto.id());
+      assertEquals(lodgingResponseDTO.name(), responseDto.name());
+      assertEquals(lodgingResponseDTO.stars(), responseDto.stars());
+      assertEquals(lodgingResponseDTO.description(), responseDto.description());
+   }
 
-        Object[] data = body.getData();
-        assertNotNull(data);
-        assertEquals(1, data.length);
-        assertInstanceOf(Page.class, data[0]);
+   private void verifyPageLodgingResponseDto(ResponseEntity<StandardResponseDto<Page<LodgingResponseDTO>>> response) {
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      StandardResponseDto<Page<LodgingResponseDTO>> body = response.getBody();
+      assertNotNull(body);
 
-        Page<LodgingResponseDTO> resultPage = (Page<LodgingResponseDTO>) data[0];
-        assertEquals(1, resultPage.getTotalElements());
-        assertEquals(1, resultPage.getContent().size());
+      Object[] data = body.getData();
+      assertNotNull(data);
+      assertEquals(1, data.length);
+      assertInstanceOf(Page.class, data[0]);
 
-        LodgingResponseDTO responseDto = resultPage.getContent().getFirst();
-        assertEquals(lodgingResponseDTO.id(), responseDto.id());
-        assertEquals(lodgingResponseDTO.name(), responseDto.name());
-        assertEquals(lodgingResponseDTO.description(), responseDto.description());
-        assertEquals(lodgingResponseDTO.stars(), responseDto.stars());
-    }
+      Page<LodgingResponseDTO> resultPage = (Page<LodgingResponseDTO>) data[0];
+      assertEquals(1, resultPage.getTotalElements());
+      assertEquals(1, resultPage.getContent().size());
+
+      LodgingResponseDTO responseDto = resultPage.getContent().getFirst();
+      assertEquals(lodgingResponseDTO.id(), responseDto.id());
+      assertEquals(lodgingResponseDTO.name(), responseDto.name());
+      assertEquals(lodgingResponseDTO.description(), responseDto.description());
+      assertEquals(lodgingResponseDTO.stars(), responseDto.stars());
+   }
+
 }

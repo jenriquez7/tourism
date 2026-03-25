@@ -34,7 +34,7 @@ public class LodgingOwnerObserver {
                   .append(MessageConstants.BOOKING_ID_IS)
                   .append(event.bookingId());
             break;
-         case PENDING:
+         case PENDING_PAYMENT:
             builder
                   .append(MessageConstants.PENDING_BOOKING_OWNER)
                   .append(event.lodgingName())

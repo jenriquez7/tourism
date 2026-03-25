@@ -119,8 +119,9 @@ public class BookingServiceImpl implements BookingService {
             bookingMessage.bookingRequest().babies(), bookingMessage.bookingRequest().checkIn(), bookingMessage.bookingRequest().checkOut(),
             lodging)) {
 
-         booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist),
-               BookingState.CREATED, key);
+         Boolean isAutoAccept = Objects.requireNonNull(lodging).getAutoAccept();
+         BookingState state = isAutoAccept ? BookingState.PENDING_PAYMENT : BookingState.CREATED;
+         booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist), state, key);
          this.handleStatusChange(lodging.getName(), booking.get().getId(), tourist, lodging.getLodgingOwner(), BookingState.CREATED);
       } else {
          booking = this.createBooking(bookingMessage.bookingRequest(), Objects.requireNonNull(lodging), Objects.requireNonNull(tourist),
@@ -234,7 +235,7 @@ public class BookingServiceImpl implements BookingService {
    @Transactional
    public void updateToExpiredBookings() {
       LocalDate tomorrow = LocalDate.now().plusDays(1);
-      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING);
+      List<BookingState> states = Arrays.asList(BookingState.CREATED, BookingState.PENDING_PAYMENT);
 
       int affectedRows = repository.expireBookingsAutomatic(tomorrow, states);
 

@@ -78,7 +78,8 @@ class BookingValidationTests {
       owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
       owner.setId(UUID.randomUUID());
       tourist.setId(UUID.randomUUID());
-      lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 5, 25.0, 4, new TouristicPlace(), owner, true);
+      lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 5, 25.0, 4, new TouristicPlace(), owner, true,
+            true);
       lodging.setId(UUID.randomUUID());
       bookingDto = new BookingRequestDTO(checkIn, checkOut, lodging.getId(), 2, 1, 1);
       booking = new Booking(checkIn, checkOut, 100.0, lodging, tourist, BookingState.CREATED, 2, 1, 1, false, key);
@@ -251,7 +252,7 @@ class BookingValidationTests {
    @Test
    @DisplayName("Valid Change State - Pending To Accepted Valid Tourist")
    void testValidChangeStatePendingToAcceptedValidTourist() {
-      booking.setState(BookingState.PENDING);
+      booking.setState(BookingState.PENDING_PAYMENT);
       booking.setAdults(1);
 
       Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, tourist.getId());
@@ -264,7 +265,7 @@ class BookingValidationTests {
    @DisplayName("Valid Change State - Pending To Accepted Invalid Tourist")
    void testValidChangeStatePendingToAcceptedInvalidTourist() {
       UUID differentUserId = UUID.randomUUID();
-      booking.setState(BookingState.PENDING);
+      booking.setState(BookingState.PENDING_PAYMENT);
 
       Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.ACCEPTED, differentUserId);
 
@@ -276,7 +277,7 @@ class BookingValidationTests {
    @Test
    @DisplayName("Valid Change State - Pending To Invalid State")
    void testValidChangeStatePendingToInvalidState() {
-      booking.setState(BookingState.PENDING);
+      booking.setState(BookingState.PENDING_PAYMENT);
 
       Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.REJECTED, tourist.getId());
 
@@ -303,7 +304,7 @@ class BookingValidationTests {
       booking.setState(BookingState.CREATED);
       booking.setAdults(0);
 
-      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING, owner.getId());
+      Either<ErrorDto[], Boolean> result = bookingValidation.validChangeState(booking, BookingState.PENDING_PAYMENT, owner.getId());
 
       assertTrue(result.isLeft());
       assertEquals(HttpStatus.BAD_REQUEST, result.getLeft()[0].code());
