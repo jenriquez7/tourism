@@ -75,7 +75,7 @@ class LodgingOwnerControllerTest {
       lodgingId = UUID.randomUUID();
       ownerRequestDTO = new LodgingOwnerRequestDTO("Poseedor", "Hotel", "photel@email.com", "12345678");
       ownerResponseDTO = new LodgingOwnerResponseDTO(lodgingId, "photel@email.com", "Poseedor", "Hotel");
-      tourist = new LodgingOwner("photel@email.com", "12345678", "Poseedor", "Hotel", Role.LODGING_OWNER, true);
+      tourist = new LodgingOwner("photel@email.com", "12345678", "Poseedor", "Hotel", true);
    }
 
    @Test

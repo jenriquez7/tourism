@@ -20,7 +20,6 @@ import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.LodgingOwnerResponseDTO;
 import com.tourism.infrastructure.PasswordEncryptionService;
 import com.tourism.model.LodgingOwner;
-import com.tourism.model.Role;
 import com.tourism.model.User;
 import com.tourism.repository.LodgingOwnerRepository;
 import com.tourism.repository.RefreshTokenRepository;
@@ -60,7 +59,7 @@ public class LodgingOwnerServiceImpl implements LodgingOwnerService {
          if (validation.isRight()) {
             LodgingOwner lodgingOwner = repository.save(
                   new LodgingOwner(userDto.getEmail(), encryptionService.encryptPassword(userDto.getPassword()), userDto.getFirstName(),
-                        userDto.getLastName(), Role.LODGING_OWNER, true));
+                        userDto.getLastName(), true));
             return Either.right(lodgingOwner.getId() != null ? mapper.modelToResponseDto(lodgingOwner) : null);
          } else {
             return Either.left(validation.getLeft());

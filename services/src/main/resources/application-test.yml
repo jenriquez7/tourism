@@ -7,7 +7,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     show-sql: true
   kafka:
     bootstrap-servers: localhost:9092
@@ -15,5 +15,9 @@ spring:
 
 SESSION_CLIENT_SECRET: "my_super_secret_test_key_that_is_long_enough_for_jwt"
 
-ADMIN_USER: "admin@test.com"
-ADMIN_PASSWORD: "admin_password_test"
+ADMIN_EMAIL: "admin@test.com"
+ADMIN_PASSWORD: "Abcd1234!"
+TOURIST_EMAIL: "tourist@test.com"
+TOURIST_PASSWORD: "Abcd1234!"
+OWNER_EMAIL: "owner@test.com"
+OWNER_PASSWORD: "Abcd1234!"

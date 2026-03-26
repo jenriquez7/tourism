@@ -40,7 +40,6 @@ import com.tourism.dto.request.TouristRequestDTO;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.TouristResponseDTO;
 import com.tourism.infrastructure.PasswordEncryptionService;
-import com.tourism.model.Role;
 import com.tourism.model.Tourist;
 import com.tourism.model.TouristType;
 import com.tourism.model.User;
@@ -93,7 +92,7 @@ class TouristServiceTest {
    @BeforeEach
    void setUp() {
       validRequestDTO = new TouristRequestDTO("Turista", "Verano", "tverano@email.com", "validPassword123", TouristType.STANDARD);
-      tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
+      tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", TouristType.STANDARD, true);
       pageableRequest = new PageableRequest(0, 10, new String[] { "email" }, Sort.Direction.ASC);
       pageable = mock(Pageable.class);
       responseDTO = new TouristResponseDTO(UUID.randomUUID(), tourist.getEmail(), tourist.getFirstName(), tourist.getLastName());
@@ -172,7 +171,7 @@ class TouristServiceTest {
    @DisplayName("Find All Tourist - Success")
    void findAllSuccess() {
       List<Tourist> tourists = Arrays.asList(tourist,
-            new Tourist("tinvierno@email.com", "validPassword123", "Turista", "Invierno", Role.TOURIST, TouristType.STANDARD, true));
+            new Tourist("tinvierno@email.com", "validPassword123", "Turista", "Invierno", TouristType.STANDARD, true));
       Page<Tourist> page = new PageImpl<>(tourists);
       TouristResponseDTO dto1 = new TouristResponseDTO(UUID.randomUUID(), tourists.getFirst().getEmail(), tourists.getFirst().getFirstName(),
             tourists.getFirst().getLastName());
@@ -340,7 +339,7 @@ class TouristServiceTest {
    void findByEmailSuccess() {
       String email = "owner";
       List<Tourist> tourists = Arrays.asList(tourist,
-            new Tourist("tinvierno@email.com", "validPassword123", "Turista", "Invierno", Role.TOURIST, TouristType.STANDARD, true));
+            new Tourist("tinvierno@email.com", "validPassword123", "Turista", "Invierno", TouristType.STANDARD, true));
       Page<Tourist> page = new PageImpl<>(tourists);
       TouristResponseDTO dto1 = new TouristResponseDTO(UUID.randomUUID(), tourists.getFirst().getEmail(), tourists.getFirst().getFirstName(),
             tourists.getFirst().getLastName());
@@ -417,7 +416,7 @@ class TouristServiceTest {
    void findByLastNameSuccess() {
       String lastName = "verano";
       List<Tourist> tourists = Arrays.asList(tourist,
-            new Tourist("verano@email.com", "validPassword123", "Turista", "Verano Soleado", Role.TOURIST, TouristType.STANDARD, true));
+            new Tourist("verano@email.com", "validPassword123", "Turista", "Verano Soleado", TouristType.STANDARD, true));
       Page<Tourist> page = new PageImpl<>(tourists);
       TouristResponseDTO dto1 = new TouristResponseDTO(UUID.randomUUID(), tourists.getFirst().getEmail(), tourists.getFirst().getFirstName(),
             tourists.getFirst().getLastName());

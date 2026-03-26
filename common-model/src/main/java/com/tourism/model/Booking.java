@@ -29,7 +29,7 @@ import lombok.ToString;
 @RequiredArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "Bookings", schema = "public")
+@Table(name = "bookings", schema = "public")
 public class Booking {
 
    @Id

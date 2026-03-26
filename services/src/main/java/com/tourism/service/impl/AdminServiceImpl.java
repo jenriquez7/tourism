@@ -19,7 +19,6 @@ import com.tourism.dto.response.AdminResponseDTO;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.infrastructure.PasswordEncryptionService;
 import com.tourism.model.Admin;
-import com.tourism.model.Role;
 import com.tourism.model.User;
 import com.tourism.repository.AdminRepository;
 import com.tourism.repository.RefreshTokenRepository;
@@ -56,7 +55,7 @@ public class AdminServiceImpl implements AdminService {
       try {
          Either<ErrorDto[], Boolean> validation = userValidation.validateEmailAndPassword(userDto.getEmail(), userDto.getPassword());
          if (validation.isRight()) {
-            Admin admin = repository.save(new Admin(userDto.getEmail(), encryptionService.encryptPassword(userDto.getPassword()), Role.ADMIN, true));
+            Admin admin = repository.save(new Admin(userDto.getEmail(), encryptionService.encryptPassword(userDto.getPassword()), true));
             return Either.right(admin.getId() != null ? mapper.modelToResponseDto(admin) : null);
          } else {
             return Either.left(validation.getLeft());

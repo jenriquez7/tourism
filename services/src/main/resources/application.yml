@@ -52,5 +52,11 @@ session:
   refresh-token-expiration-time: 7
 
 admin:
-  user: ${ADMIN_USER}
+  email: ${ADMIN_EMAIL}
   password: ${ADMIN_PASSWORD}
+tourist:
+  email: ${TOURIST_EMAIL}
+  password: ${TOURIST_PASSWORD}
+owner:
+  email: ${OWNER_EMAIL}
+  password: ${OWNER_PASSWORD}

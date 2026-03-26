@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tourism.dto.request.AuthUserDto;
 import com.tourism.model.Admin;
-import com.tourism.model.Role;
 import com.tourism.repository.AdminRepository;
 
 @SpringBootTest
@@ -92,7 +91,7 @@ public class AdminIntegrationTest {
    @DisplayName("getById Admin successfully")
    @WithMockUser(roles = "ADMIN")
    void getByIdAdminIntegrationTest() throws Exception {
-      Admin admin = adminRepository.save(new Admin("admin_by_id@test.com", "password", Role.ADMIN, true));
+      Admin admin = adminRepository.save(new Admin("admin_by_id@test.com", "password", true));
       String url = "/v1/admin/" + admin.getId();
 
       mockMvc
@@ -122,8 +121,8 @@ public class AdminIntegrationTest {
    @DisplayName("delete Admin successfully")
    @WithMockUser(roles = "ADMIN")
    void deleteAdminIntegrationTest() throws Exception {
-      adminRepository.save(new Admin("admin_to_delete@test.com", "password", Role.ADMIN, true));
-      Admin adminToDelete = adminRepository.save(new Admin("admin_delete@test.com", "password", Role.ADMIN, true));
+      adminRepository.save(new Admin("admin_to_delete@test.com", "password", true));
+      Admin adminToDelete = adminRepository.save(new Admin("admin_delete@test.com", "password", true));
       String url = "/v1/admin/" + adminToDelete.getId();
 
       mockMvc.perform(delete(url).contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk());
@@ -156,7 +155,7 @@ public class AdminIntegrationTest {
    @DisplayName("findByEmail Admin successfully")
    @WithMockUser(roles = "ADMIN")
    void findByEmailAdminIntegrationTest() throws Exception {
-      adminRepository.save(new Admin("admin_email@test.com", "password", Role.ADMIN, true));
+      adminRepository.save(new Admin("admin_email@test.com", "password", true));
       String url = "/v1/admin/email?email=admin_email";
 
       mockMvc

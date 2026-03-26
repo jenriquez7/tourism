@@ -50,7 +50,6 @@ import com.tourism.model.BookingState;
 import com.tourism.model.Lodging;
 import com.tourism.model.LodgingOwner;
 import com.tourism.model.Region;
-import com.tourism.model.Role;
 import com.tourism.model.TouristicPlace;
 import com.tourism.model.User;
 import com.tourism.repository.BookingDateRepository;
@@ -108,7 +107,7 @@ class LodgingServiceTest {
 
    @BeforeEach
    void setUp() {
-      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
+      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", true);
       place = new TouristicPlace("Punta del Este", "Hermoso lugar", Region.EAST, new User(), true);
       place.setCategories(new ArrayList<>());
       CategoryDTO category = new CategoryDTO(1, "Playa");

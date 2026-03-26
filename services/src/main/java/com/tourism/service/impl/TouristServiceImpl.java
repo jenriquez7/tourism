@@ -19,7 +19,6 @@ import com.tourism.dto.request.TouristRequestDTO;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.TouristResponseDTO;
 import com.tourism.infrastructure.PasswordEncryptionService;
-import com.tourism.model.Role;
 import com.tourism.model.Tourist;
 import com.tourism.model.User;
 import com.tourism.repository.RefreshTokenRepository;
@@ -60,7 +59,7 @@ public class TouristServiceImpl implements TouristService {
          if (validation.isRight()) {
             Tourist tourist = repository.save(
                   new Tourist(userDto.getEmail(), encryptionService.encryptPassword(userDto.getPassword()), userDto.getFirstName(),
-                        userDto.getLastName(), Role.TOURIST, userDto.getType(), true));
+                        userDto.getLastName(), userDto.getType(), true));
             return Either.right(tourist.getId() != null ? mapper.modelToResponseDto(tourist) : null);
          } else {
             return Either.left(validation.getLeft());
@@ -98,7 +97,7 @@ public class TouristServiceImpl implements TouristService {
       } catch (NoSuchElementException e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.NULL_ID) });
-      } catch (InvalidDataAccessApiUsageException e) {
+      } catch (InvalidDataAccessApiUsageException | NullPointerException e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_DELETING_TOURIST) });
       } catch (Exception e) {
@@ -111,7 +110,7 @@ public class TouristServiceImpl implements TouristService {
    public Either<ErrorDto[], TouristResponseDTO> getById(UUID id) {
       try {
          return Either.right(mapper.modelToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
-      } catch (InvalidDataAccessApiUsageException e) {
+      } catch (InvalidDataAccessApiUsageException | NullPointerException e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID) });
       } catch (Exception e) {
@@ -126,7 +125,7 @@ public class TouristServiceImpl implements TouristService {
          Pageable pageable = pageService.createSortedPageable(paging);
          Page<Tourist> tourists = repository.findByEmailStartingWithIgnoreCase(email, pageable);
          return Either.right(tourists.map(mapper::modelToResponseDto));
-      } catch (InvalidDataAccessApiUsageException e) {
+      } catch (InvalidDataAccessApiUsageException | NullPointerException e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_EMAIL) });
       } catch (Exception e) {
@@ -141,7 +140,7 @@ public class TouristServiceImpl implements TouristService {
          Pageable pageable = pageService.createSortedPageable(paging);
          Page<Tourist> tourists = repository.findByLastNameStartingWithIgnoreCase(lastName, pageable);
          return Either.right(tourists.map(mapper::modelToResponseDto));
-      } catch (InvalidDataAccessApiUsageException e) {
+      } catch (InvalidDataAccessApiUsageException | NullPointerException e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_LAST_NAME) });
       } catch (Exception e) {

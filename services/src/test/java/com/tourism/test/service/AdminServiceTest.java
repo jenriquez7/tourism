@@ -94,7 +94,7 @@ class AdminServiceTest {
    @BeforeEach
    void setUp() {
       authUserDto = new AuthUserDto("admin@email.com", "12345678");
-      admin = new Admin("admin@email.com", "12345678", Role.ADMIN, true);
+      admin = new Admin("admin@email.com", "12345678", true);
       pageableRequest = new PageableRequest(0, 10, new String[] { "email" }, Sort.Direction.ASC);
       pageable = mock(Pageable.class);
       responseDTO = new AdminResponseDTO(UUID.randomUUID(), authUserDto.getEmail());
@@ -172,8 +172,7 @@ class AdminServiceTest {
    @Test
    @DisplayName("Find All Admins - Success")
    void findAllSuccess() {
-      List<Admin> admins = Arrays.asList(new Admin("admin1@example.com", "password", Role.ADMIN, true),
-            new Admin("admin2@example.com", "password", Role.ADMIN, true));
+      List<Admin> admins = Arrays.asList(new Admin("admin1@example.com", "password", true), new Admin("admin2@example.com", "password", true));
       Page<Admin> page = new PageImpl<>(admins);
       AdminResponseDTO dto1 = new AdminResponseDTO(UUID.randomUUID(), admins.getFirst().getEmail());
       AdminResponseDTO dto2 = new AdminResponseDTO(UUID.randomUUID(), admins.getLast().getEmail());
@@ -352,8 +351,7 @@ class AdminServiceTest {
    @DisplayName("Find Admins By Email - Success")
    void findByEmailSuccess() {
       String email = "admin";
-      List<Admin> admins = Arrays.asList(new Admin("admin1@example.com", "password", Role.ADMIN, true),
-            new Admin("admin2@example.com", "password", Role.ADMIN, true));
+      List<Admin> admins = Arrays.asList(new Admin("admin1@example.com", "password", true), new Admin("admin2@example.com", "password", true));
       Page<Admin> adminPage = new PageImpl<>(admins);
       AdminResponseDTO dto1 = new AdminResponseDTO(UUID.randomUUID(), admins.getFirst().getEmail());
       AdminResponseDTO dto2 = new AdminResponseDTO(UUID.randomUUID(), admins.getLast().getEmail());

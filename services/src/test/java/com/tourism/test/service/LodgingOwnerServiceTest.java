@@ -41,7 +41,6 @@ import com.tourism.dto.response.ErrorDto;
 import com.tourism.dto.response.LodgingOwnerResponseDTO;
 import com.tourism.infrastructure.PasswordEncryptionService;
 import com.tourism.model.LodgingOwner;
-import com.tourism.model.Role;
 import com.tourism.model.User;
 import com.tourism.repository.LodgingOwnerRepository;
 import com.tourism.repository.RefreshTokenRepository;
@@ -92,7 +91,7 @@ class LodgingOwnerServiceTest {
    @BeforeEach
    void setUp() {
       validRequestDTO = new LodgingOwnerRequestDTO("Owner", "Hotel", "owner@email.com", "validPassword123");
-      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
+      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", true);
       pageableRequest = new PageableRequest(0, 10, new String[] { "email" }, Sort.Direction.ASC);
       pageable = mock(Pageable.class);
       responseDTO = new LodgingOwnerResponseDTO(UUID.randomUUID(), owner.getEmail(), owner.getFirstName(), owner.getLastName());
@@ -115,7 +114,6 @@ class LodgingOwnerServiceTest {
       assertTrue(result.isRight());
       LodgingOwnerResponseDTO responseDTO = result.get();
       assertNotNull(responseDTO);
-      assertEquals(responseDTO.id(), responseDTO.id());
       assertEquals(validRequestDTO.getEmail(), responseDTO.email());
       assertEquals(validRequestDTO.getFirstName(), responseDTO.firstName());
       assertEquals(validRequestDTO.getLastName(), responseDTO.lastName());
@@ -171,8 +169,7 @@ class LodgingOwnerServiceTest {
    @Test
    @DisplayName("Find All Lodging Owners - Success")
    void findAllSuccess() {
-      List<LodgingOwner> owners = Arrays.asList(owner,
-            new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", Role.LODGING_OWNER, true));
+      List<LodgingOwner> owners = Arrays.asList(owner, new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", true));
       Page<LodgingOwner> page = new PageImpl<>(owners);
       LodgingOwnerResponseDTO dto1 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getFirst().getEmail(), owners.getFirst().getFirstName(),
             owners.getFirst().getLastName());
@@ -338,8 +335,7 @@ class LodgingOwnerServiceTest {
    @DisplayName("Find Lodging Owners By Email - Success")
    void findByEmailSuccess() {
       String email = "owner";
-      List<LodgingOwner> owners = Arrays.asList(owner,
-            new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", Role.LODGING_OWNER, true));
+      List<LodgingOwner> owners = Arrays.asList(owner, new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", true));
       Page<LodgingOwner> page = new PageImpl<>(owners);
       LodgingOwnerResponseDTO dto1 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getFirst().getEmail(), owners.getFirst().getFirstName(),
             owners.getFirst().getLastName());
@@ -415,8 +411,7 @@ class LodgingOwnerServiceTest {
    @DisplayName("Find Lodging Owners By Last Name - Success")
    void findByLastNameSuccess() {
       String lastName = "Hotel";
-      List<LodgingOwner> owners = Arrays.asList(owner,
-            new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", Role.LODGING_OWNER, true));
+      List<LodgingOwner> owners = Arrays.asList(owner, new LodgingOwner("owner2@email.com", "validPassword123", "Owner2", "Hotel2", true));
       Page<LodgingOwner> page = new PageImpl<>(owners);
       LodgingOwnerResponseDTO dto1 = new LodgingOwnerResponseDTO(UUID.randomUUID(), owners.getFirst().getEmail(), owners.getFirst().getFirstName(),
             owners.getFirst().getLastName());

@@ -33,7 +33,6 @@ import com.tourism.model.BookingDate;
 import com.tourism.model.BookingState;
 import com.tourism.model.Lodging;
 import com.tourism.model.LodgingOwner;
-import com.tourism.model.Role;
 import com.tourism.model.Tourist;
 import com.tourism.model.TouristType;
 import com.tourism.model.TouristicPlace;
@@ -74,8 +73,8 @@ class BookingValidationTests {
       String key = "key";
       checkIn = LocalDate.now().plusDays(1);
       checkOut = LocalDate.now().plusDays(3);
-      tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", Role.TOURIST, TouristType.STANDARD, true);
-      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", Role.LODGING_OWNER, true);
+      tourist = new Tourist("tverano@email.com", "validPassword123", "Turista", "Verano", TouristType.STANDARD, true);
+      owner = new LodgingOwner("owner@email.com", "validPassword123", "Owner", "Hotel", true);
       owner.setId(UUID.randomUUID());
       tourist.setId(UUID.randomUUID());
       lodging = new Lodging("Hotel Test", "Un hotel de pruebas", "Calle falsa 123", "+59899123456", 5, 25.0, 4, new TouristicPlace(), owner, true,
