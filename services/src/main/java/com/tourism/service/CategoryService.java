@@ -1,20 +1,25 @@
 package com.tourism.service;
 
+import io.vavr.control.Either;
+
+import org.springframework.data.domain.Page;
+
+import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.model.Category;
-import io.vavr.control.Either;
 
 public interface CategoryService {
 
-    Either<ErrorDto[], Category> create(Category category);
+   Either<ErrorDto[], Category> create(Category category);
 
-    Either<ErrorDto[], Category> update(Category category);
+   Either<ErrorDto[], Category> update(Category category);
 
-    Either<ErrorDto[], Category> delete(Integer id);
+   Either<ErrorDto[], Category> delete(Integer id);
 
-    Either<ErrorDto[], Category> getById(Integer id);
+   Either<ErrorDto[], Category> getById(Integer id);
 
-    Either<ErrorDto[], Category[]> findByName(String name);
+   Either<ErrorDto[], Page<Category>> findByName(String name, PageableRequest paging);
 
-    Either<ErrorDto[], Category[]> findAll();
+   Either<ErrorDto[], Page<Category>> findAll(PageableRequest paging);
+
 }

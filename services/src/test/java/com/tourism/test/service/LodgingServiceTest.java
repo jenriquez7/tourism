@@ -64,7 +64,7 @@ import com.tourism.util.validations.BookingValidation;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-class LodgingServiceTests {
+class LodgingServiceTest {
 
    @Mock
    private LodgingRepository repository;

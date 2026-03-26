@@ -51,7 +51,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-class BookingControllerTests {
+class BookingControllerTest {
 
    @Mock
    private BookingService service;

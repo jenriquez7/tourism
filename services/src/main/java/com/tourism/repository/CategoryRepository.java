@@ -1,12 +1,15 @@
 package com.tourism.repository;
 
-import com.tourism.model.Category;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.tourism.model.Category;
 
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
-    Category[] findByNameStartingWithIgnoreCaseOrderByNameAsc(String name);
+   Page<Category> findByNameStartingWithIgnoreCaseOrderByNameAsc(String name, Pageable pageable);
 
-    Category[] findAllByOrderByNameAsc();
+   Page<Category> findAllByOrderByNameAsc(Pageable pageable);
 
 }

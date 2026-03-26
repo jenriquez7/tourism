@@ -49,7 +49,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-class LodgingControllerTests {
+class LodgingControllerTest {
 
    @Mock
    private LodgingService service;

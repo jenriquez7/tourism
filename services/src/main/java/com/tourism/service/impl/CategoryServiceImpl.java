@@ -6,14 +6,18 @@ import io.vavr.control.Either;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.ErrorDto;
 import com.tourism.model.Category;
 import com.tourism.repository.CategoryRepository;
 import com.tourism.service.CategoryService;
 import com.tourism.util.MessageConstants;
+import com.tourism.util.PageService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 public class CategoryServiceImpl implements CategoryService {
 
    private final CategoryRepository repository;
+
+   private final PageService pageService;
 
    @Override
    public Either<ErrorDto[], Category> create(Category category) {
@@ -56,9 +62,11 @@ public class CategoryServiceImpl implements CategoryService {
    }
 
    @Override
-   public Either<ErrorDto[], Category[]> findAll() {
+   public Either<ErrorDto[], Page<Category>> findAll(PageableRequest paging) {
       try {
-         return Either.right(repository.findAllByOrderByNameAsc());
+         Pageable pageable = pageService.createSortedPageable(paging);
+         Page<Category> categories = repository.findAllByOrderByNameAsc(pageable);
+         return Either.right(categories);
       } catch (Exception e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.BAD_REQUEST, MessageConstants.GENERIC_ERROR) });
@@ -95,9 +103,10 @@ public class CategoryServiceImpl implements CategoryService {
    }
 
    @Override
-   public Either<ErrorDto[], Category[]> findByName(String name) {
+   public Either<ErrorDto[], Page<Category>> findByName(String name, PageableRequest paging) {
       try {
-         return Either.right(repository.findByNameStartingWithIgnoreCaseOrderByNameAsc(name));
+         Pageable pageable = pageService.createSortedPageable(paging);
+         return Either.right(repository.findByNameStartingWithIgnoreCaseOrderByNameAsc(name, pageable));
       } catch (InvalidDataAccessApiUsageException e) {
          log.error(e.getMessage());
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_NAME) });

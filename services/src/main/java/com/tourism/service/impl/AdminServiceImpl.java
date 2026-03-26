@@ -106,7 +106,11 @@ public class AdminServiceImpl implements AdminService {
    @Override
    public Either<ErrorDto[], AdminResponseDTO> getById(UUID id) {
       try {
-         return Either.right(mapper.modelToResponseDto(Objects.requireNonNull(repository.findById(id).orElse(null))));
+         Admin admin = repository.findById(id).orElse(null);
+         if (Objects.isNull(admin)) {
+            return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.ERROR_ADMIN_NOT_FOUND) });
+         }
+         return Either.right(mapper.modelToResponseDto(admin));
       } catch (InvalidDataAccessApiUsageException e) {
          return Either.left(new ErrorDto[] { ErrorDto.of(HttpStatus.NOT_FOUND, MessageConstants.NULL_ID) });
       } catch (Exception e) {

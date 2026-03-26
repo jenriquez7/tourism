@@ -3,11 +3,13 @@ package com.tourism.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tourism.configuration.annotation.CommonApiResponses;
+import com.tourism.dto.request.PageableRequest;
 import com.tourism.dto.response.StandardResponseDto;
 import com.tourism.model.Category;
 import com.tourism.service.CategoryService;
@@ -26,6 +29,7 @@ import com.tourism.util.helpers.AuthenticationHelper;
 
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,8 +56,8 @@ public class CategoryController {
    @CommonApiResponses
    @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
    @GetMapping
-   public ResponseEntity<StandardResponseDto<Category>> findAll(HttpServletRequest request) {
-      return ResponseEntityUtil.buildArray(request, service.findAll());
+   public ResponseEntity<StandardResponseDto<Page<Category>>> findAll(HttpServletRequest request, @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, service.findAll(paging));
    }
 
    @Operation(summary = "Endpoint to update an specific category", operationId = "updateCategory")
@@ -76,8 +80,9 @@ public class CategoryController {
    @CommonApiResponses
    @PreAuthorize(AuthenticationHelper.EVERY_ROLE)
    @GetMapping("/findByName")
-   public ResponseEntity<StandardResponseDto<Category>> findByName(HttpServletRequest request, @RequestParam("name") String name) {
-      return ResponseEntityUtil.buildArray(request, service.findByName(name));
+   public ResponseEntity<StandardResponseDto<Page<Category>>> findByName(HttpServletRequest request, @RequestParam("name") String name,
+         @Valid @ModelAttribute PageableRequest paging) {
+      return ResponseEntityUtil.buildObject(request, service.findByName(name, paging));
    }
 
    @Operation(summary = "Endpoint to delete a category", operationId = "deleteCategory")

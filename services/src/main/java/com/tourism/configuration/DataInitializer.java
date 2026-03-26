@@ -1,11 +1,11 @@
 package com.tourism.configuration;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import com.tourism.infrastructure.PasswordEncryptionService;
@@ -43,7 +43,7 @@ public class DataInitializer implements CommandLineRunner {
          adminRepository.save(admin);
          log.info("*** Admin created ***");
       }
-      if (Arrays.stream(categoryRepository.findByNameStartingWithIgnoreCaseOrderByNameAsc("Ciudad")).findAny().isEmpty()) {
+      if (categoryRepository.findByNameStartingWithIgnoreCaseOrderByNameAsc("Ciudad", Pageable.unpaged()).isEmpty()) {
          List<Category> categories = new ArrayList<>(
                List.of(new Category(1, "Ciudad", true), new Category(2, "Playa", true), new Category(3, "Sierras", true),
                      new Category(4, "Termas", true), new Category(5, "Campo", true), new Category(6, "Pueblo", true),

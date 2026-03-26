@@ -72,7 +72,7 @@ import com.tourism.util.validations.DateValidation;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-class BookingServiceTests {
+class BookingServiceTest {
 
    @Mock
    private BookingRepository repository;

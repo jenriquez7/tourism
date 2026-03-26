@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-class TouristicPlaceControllerTests {
+class TouristicPlaceControllerTest {
 
     @Mock
     private TouristicPlaceService service;
